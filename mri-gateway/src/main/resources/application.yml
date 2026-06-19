@@ -1,0 +1,63 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: mri-gateway
+  config:
+    import: optional:nacos:${spring.application.name}.yaml
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: auth
+          uri: lb://mri-auth-service
+          predicates:
+            - Path=/api/auth/**,/api/users/**
+          filters:
+            - StripPrefix=1
+        - id: patient
+          uri: lb://mri-patient-service
+          predicates:
+            - Path=/api/patients/**
+          filters:
+            - StripPrefix=1
+        - id: exam
+          uri: lb://mri-exam-service
+          predicates:
+            - Path=/api/exams/**
+          filters:
+            - StripPrefix=1
+        - id: image
+          uri: lb://mri-image-service
+          predicates:
+            - Path=/api/images/**
+          filters:
+            - StripPrefix=1
+        - id: report
+          uri: lb://mri-report-service
+          predicates:
+            - Path=/api/reports/**
+          filters:
+            - StripPrefix=1
+
+mri:
+  security:
+    jwt-secret: 0123456789abcdef0123456789abcdef
+    token-ttl-minutes: 120
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

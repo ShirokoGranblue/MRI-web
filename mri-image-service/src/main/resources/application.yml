@@ -1,0 +1,43 @@
+server:
+  port: 9004
+
+spring:
+  application:
+    name: mri-image-service
+  config:
+    import: optional:nacos:${spring.application.name}.yaml
+  datasource:
+    url: jdbc:mysql://localhost:3307/mri_cloud?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: mri
+    password: mri123456
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 2000
+            read-timeout: 3000
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+
+mri:
+  image:
+    watermark: 医院MRI影像系统
+    download-enabled: true
+  cache:
+    study-ttl-seconds: 300
+
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0

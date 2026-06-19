@@ -1,0 +1,32 @@
+server:
+  port: 9005
+
+spring:
+  application:
+    name: mri-report-service
+  config:
+    import: optional:nacos:${spring.application.name}.yaml
+  datasource:
+    url: jdbc:mysql://localhost:3307/mri_cloud?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: mri
+    password: mri123456
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 2000
+            read-timeout: 3000
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0

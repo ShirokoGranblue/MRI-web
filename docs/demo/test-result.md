@@ -37,3 +37,18 @@ mri-report-service ................................. SUCCESS
 mri-gateway ........................................ SUCCESS
 BUILD SUCCESS
 ```
+## 前端构建验证
+
+已在 `mri-frontend` 执行：
+
+```powershell
+npm install
+npm run build
+npm audit --json
+```
+
+执行结果：
+
+- `npm run build`：SUCCESS，Vite 8.0.16 生成 `dist/index.html`、CSS 和 JS 资源。
+- `npm audit --json`：漏洞数量为 0。
+- Playwright 截图验证：已生成桌面和移动端截图，文件位于 `target-demo-output/mri-frontend-desktop.png` 和 `target-demo-output/mri-frontend-mobile.png`。

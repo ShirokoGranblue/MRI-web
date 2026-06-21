@@ -56,3 +56,27 @@
 ```
 
 脚本会演示 `git init`、`git add`、`git commit`、`git remote add origin` 或 `git remote set-url origin`、`git push`。
+## 11. 前端界面演示
+
+前端模块位于 `mri-frontend`，建议在中间件、微服务和网关启动后执行：
+
+```powershell
+cd mri-frontend
+npm install
+npm run dev
+```
+
+浏览器访问 `http://localhost:5173`。演示顺序建议为：
+
+1. 使用 `admin/admin123` 登录，观察 Bearer Token 状态。
+2. 在“患者档案”新增患者并刷新列表。
+3. 在“检查申请”创建 MRI 检查申请、安排排程、执行开始和完成检查。
+4. 在“影像归档”归档 Study、新增 Series、登记 Image 文件元数据。
+5. 在“报告审核”新增报告、提交审核、审核通过、发布报告。
+6. 在“缓存配置”读取 viewer manifest、执行 Redis 查询、读取 Nacos 动态配置。
+7. 查看右侧操作日志，确认请求均通过 `/api/**` 网关访问。
+
+本地视觉验证截图保存于：
+
+- `target-demo-output/mri-frontend-desktop.png`
+- `target-demo-output/mri-frontend-mobile.png`

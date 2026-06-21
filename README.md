@@ -21,6 +21,7 @@
 - `mri-image-service`：Study、Series、Image 文件、viewer manifest、下载审计。
 - `mri-report-service`：诊断报告、审核、发布。
 - `mri-gateway`：统一 API 网关、JWT 鉴权、路由。
+- `mri-frontend`：中文前端工作台，通过 API 网关访问各微服务。
 
 ## 快速运行
 
@@ -42,6 +43,18 @@ mvn -pl mri-gateway spring-boot:run
 
 网关入口：`http://localhost:8080/api/**`
 
+
+## 前端界面
+
+前端模块位于 `mri-frontend`，默认通过 Vite 代理访问网关 `http://localhost:8080/api/**`。
+
+```powershell
+cd mri-frontend
+npm install
+npm run dev
+```
+
+浏览器访问：`http://localhost:5173`
 各服务 Swagger：
 
 - Auth: `http://localhost:9001/swagger-ui.html`

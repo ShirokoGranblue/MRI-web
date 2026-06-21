@@ -29,3 +29,8 @@
 难点：患者详情、Study 详情和 viewer manifest 适合缓存，但修改后必须失效，否则演示会出现旧数据。
 
 解决：患者服务在查询详情时写入 Redis key `mri:patient:{id}`，修改/删除患者后清理缓存；影像服务缓存 `mri:study:{studyId}` 和 `mri:viewer:{studyId}`，修改 Study、Series 或 Image 文件后清理相关缓存。viewer manifest 会校验当前水印和下载开关，避免配置中心刷新后继续命中旧配置。演示脚本连续查询并查看 Redis key，展示缓存命中和失效过程。
+## 6. 前端工作台与网关联调
+
+难点：系统最初只有后端微服务和脚本演示，缺少面向答辩老师和演示人员的可视化入口。前端不能做成无关的宣传页，也不能绕过网关直接访问各微服务，否则无法体现登录认证、网关鉴权、Redis/Nacos 演示和远程调用链路。
+
+解决：新增 `mri-frontend` React + Vite 工作台，所有请求默认走 `/api/**`，由 Vite 代理到 `http://localhost:8080` 网关。界面只保留 MRI 业务相关内容，包括患者档案、检查申请、检查排程、Study/Series/Image 元数据、viewer manifest、报告审核发布、Redis 缓存和 Nacos 配置演示。前端构建使用 Vite 8，`npm audit` 结果为 0 个漏洞，并通过 Playwright 生成桌面和移动端截图进行可视化检查。

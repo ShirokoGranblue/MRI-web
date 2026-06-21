@@ -8,3 +8,6 @@ storage/mri-images/*
 target-demo-output/
 target-demo-output-token.txt
 *.log
+mri-frontend/node_modules/
+mri-frontend/dist/
+mri-frontend/.vite/

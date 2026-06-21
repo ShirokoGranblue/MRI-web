@@ -48,6 +48,34 @@ Authorization: Bearer <token>
 
 登出后 token 会进入 Redis 黑名单，再次访问业务接口会被网关拒绝。
 
+
+## 前端界面使用
+
+前端工作台位于 `mri-frontend`，启动后通过 API 网关访问后端接口。
+
+```powershell
+cd mri-frontend
+npm install
+npm run dev
+```
+
+浏览器访问：
+
+```text
+http://localhost:5173
+```
+
+前端界面主要区域：
+
+- 左侧导航：工作台、患者档案、检查申请、影像归档、报告审核、缓存配置。
+- 顶部状态：显示网关、Redis、Nacos、Feign 相关状态标签。
+- 登录认证：使用默认账号 `admin/admin123` 登录，登录后自动保存 Bearer Token。
+- 患者档案：新增患者并刷新患者分页查询结果。
+- 检查申请：创建 MRI 检查申请、安排检查排程、开始检查、完成检查。
+- 影像归档：归档 Study，新增 Series，登记 Image 文件元数据。
+- 报告审核：新增报告、提交审核、审核通过、发布报告。
+- 缓存配置：读取 viewer manifest，触发 Redis 缓存演示查询，读取 Nacos 动态配置。
+- 操作日志：记录前端通过网关调用接口的成功和失败结果。
 ## 功能使用流程
 
 1. 患者建档：调用 `POST /api/patients` 创建患者。

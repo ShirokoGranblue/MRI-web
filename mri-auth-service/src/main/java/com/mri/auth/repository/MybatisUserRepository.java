@@ -50,14 +50,14 @@ public class MybatisUserRepository implements UserRepository {
             throw new IllegalArgumentException("用户不存在");
         }
         UserEntity entity = toEntity(user);
-        userMapper.updateById(entity);
+        ensureAffected(userMapper.updateById(entity), "用户不存在");
         replaceRoles(user.id(), user.roles());
         return user;
     }
 
     @Override
     public void delete(Long id) {
-        userMapper.deleteById(id);
+        ensureAffected(userMapper.deleteById(id), "用户不存在");
     }
 
     private UserRecord toRecord(UserEntity entity) {
@@ -86,6 +86,12 @@ public class MybatisUserRepository implements UserRepository {
             entity.setUserId(userId);
             entity.setRoleCode(role);
             userRoleMapper.insert(entity);
+        }
+    }
+
+    private static void ensureAffected(int affectedRows, String message) {
+        if (affectedRows <= 0) {
+            throw new IllegalArgumentException(message);
         }
     }
 }

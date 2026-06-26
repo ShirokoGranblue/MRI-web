@@ -1,6 +1,6 @@
 # 接口数量说明
 
-系统规划并实现 65 个业务/演示接口，满足课程要求“不低于 50 个接口”。接口均通过 springdoc-openapi 生成 Swagger/OpenAPI 文档。
+系统规划并实现 65 个业务/演示接口。接口均通过 springdoc-openapi 生成 Swagger/OpenAPI 文档。
 
 | 模块 | 数量 | 说明 |
 | --- | ---: | --- |

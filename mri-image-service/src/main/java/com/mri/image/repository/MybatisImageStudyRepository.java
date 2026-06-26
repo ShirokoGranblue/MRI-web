@@ -65,13 +65,13 @@ public class MybatisImageStudyRepository implements ImageStudyRepository {
 
     @Override
     public MriStudy updateStudy(MriStudy study) {
-        studyMapper.updateById(toEntity(study));
+        ensureAffected(studyMapper.updateById(toEntity(study)), "Study 不存在");
         return study;
     }
 
     @Override
     public void deleteStudy(Long id) {
-        studyMapper.deleteById(id);
+        ensureAffected(studyMapper.deleteById(id), "Study 不存在");
     }
 
     @Override
@@ -83,7 +83,7 @@ public class MybatisImageStudyRepository implements ImageStudyRepository {
 
     @Override
     public MriSeries updateSeries(MriSeries series) {
-        seriesMapper.updateById(toEntity(series));
+        ensureAffected(seriesMapper.updateById(toEntity(series)), "Series 不存在");
         return series;
     }
 
@@ -100,7 +100,7 @@ public class MybatisImageStudyRepository implements ImageStudyRepository {
 
     @Override
     public void deleteSeries(Long id) {
-        seriesMapper.deleteById(id);
+        ensureAffected(seriesMapper.deleteById(id), "Series 不存在");
     }
 
     @Override
@@ -127,7 +127,7 @@ public class MybatisImageStudyRepository implements ImageStudyRepository {
 
     @Override
     public void deleteFile(Long id) {
-        fileMapper.deleteById(id);
+        ensureAffected(fileMapper.deleteById(id), "影像文件不存在");
     }
 
     @Override
@@ -197,5 +197,11 @@ public class MybatisImageStudyRepository implements ImageStudyRepository {
         entity.setReason(log.reason());
         entity.setDownloadedAt(log.downloadedAt());
         return entity;
+    }
+
+    private static void ensureAffected(int affectedRows, String message) {
+        if (affectedRows <= 0) {
+            throw new IllegalArgumentException(message);
+        }
     }
 }

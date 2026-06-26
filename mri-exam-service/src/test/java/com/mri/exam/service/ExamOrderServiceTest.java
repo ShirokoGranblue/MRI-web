@@ -6,9 +6,12 @@ import com.mri.exam.model.ExamOrder;
 import com.mri.exam.repository.ExamOrderRepository;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,5 +44,33 @@ class ExamOrderServiceTest {
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("患者不存在");
+    }
+
+    @Test
+    void completeRequiresExamInProgress() {
+        PatientClient patientClient = mock(PatientClient.class);
+        ExamOrderRepository repository = mock(ExamOrderRepository.class);
+        when(repository.findById(11L)).thenReturn(Optional.of(new ExamOrder(11L, 3L, "头颅MRI平扫", "REQUESTED")));
+
+        ExamOrderService service = new ExamOrderService(repository, patientClient);
+
+        assertThatThrownBy(() -> service.complete(11L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("IN_PROGRESS");
+        verify(repository, never()).updateStatus(11L, "COMPLETED");
+    }
+
+    @Test
+    void markReportedRequiresCompletedExam() {
+        PatientClient patientClient = mock(PatientClient.class);
+        ExamOrderRepository repository = mock(ExamOrderRepository.class);
+        when(repository.findById(11L)).thenReturn(Optional.of(new ExamOrder(11L, 3L, "头颅MRI平扫", "REQUESTED")));
+
+        ExamOrderService service = new ExamOrderService(repository, patientClient);
+
+        assertThatThrownBy(() -> service.markReported(11L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("COMPLETED");
+        verify(repository, never()).updateStatus(11L, "REPORT_PUBLISHED");
     }
 }

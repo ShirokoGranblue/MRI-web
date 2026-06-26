@@ -66,13 +66,13 @@ public class MybatisReportRepository implements ReportRepository {
         entity.setStudyId(request.studyId());
         entity.setFindings(request.findings());
         entity.setImpression(request.impression());
-        reportMapper.updateById(entity);
+        ensureAffected(reportMapper.updateById(entity), "报告不存在");
         return toModel(entity);
     }
 
     @Override
     public void delete(Long id) {
-        reportMapper.deleteById(id);
+        ensureAffected(reportMapper.deleteById(id), "报告不存在");
     }
 
     @Override
@@ -82,7 +82,7 @@ public class MybatisReportRepository implements ReportRepository {
             throw new IllegalArgumentException("报告不存在");
         }
         entity.setStatus(status);
-        reportMapper.updateById(entity);
+        ensureAffected(reportMapper.updateById(entity), "报告不存在");
         return toModel(entity);
     }
 
@@ -121,5 +121,11 @@ public class MybatisReportRepository implements ReportRepository {
 
     private static ReportAuditLog toModel(ReportAuditLogEntity entity) {
         return new ReportAuditLog(entity.getId(), entity.getReportId(), entity.getAction(), entity.getOperator(), entity.getComment(), entity.getOperatedAt());
+    }
+
+    private static void ensureAffected(int affectedRows, String message) {
+        if (affectedRows <= 0) {
+            throw new IllegalArgumentException(message);
+        }
     }
 }

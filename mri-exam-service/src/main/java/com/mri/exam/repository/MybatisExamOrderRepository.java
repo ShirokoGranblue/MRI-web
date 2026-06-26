@@ -62,7 +62,7 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
         entity.setExamItem(request.examItem());
         entity.setClinicalDiagnosis(request.clinicalDiagnosis());
         entity.setPriority(request.priority());
-        examOrderMapper.updateById(entity);
+        ensureAffected(examOrderMapper.updateById(entity), "检查申请不存在");
         return toModel(entity);
     }
 
@@ -78,7 +78,7 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
             throw new IllegalArgumentException("检查申请不存在");
         }
         entity.setStatus(status);
-        examOrderMapper.updateById(entity);
+        ensureAffected(examOrderMapper.updateById(entity), "检查申请不存在");
         return toModel(entity);
     }
 
@@ -91,7 +91,7 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
 
     @Override
     public MriSchedule updateSchedule(MriSchedule schedule) {
-        scheduleMapper.updateById(toEntity(schedule));
+        ensureAffected(scheduleMapper.updateById(toEntity(schedule)), "检查排程不存在");
         return schedule;
     }
 
@@ -108,7 +108,7 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
 
     @Override
     public void deleteSchedule(Long id) {
-        scheduleMapper.deleteById(id);
+        ensureAffected(scheduleMapper.deleteById(id), "检查排程不存在");
     }
 
     private static ExamOrder toModel(ExamOrderEntity entity) {
@@ -127,5 +127,11 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
         entity.setScheduledAt(schedule.scheduledAt());
         entity.setTechnologist(schedule.technologist());
         return entity;
+    }
+
+    private static void ensureAffected(int affectedRows, String message) {
+        if (affectedRows <= 0) {
+            throw new IllegalArgumentException(message);
+        }
     }
 }

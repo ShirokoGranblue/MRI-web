@@ -24,21 +24,24 @@ public class ReportService {
     }
 
     public Report submit(Long id) {
-        requireReport(id);
+        Report report = requireReport(id);
+        requireStatus(report, "DRAFT");
         Report submitted = repository.updateStatus(id, "SUBMITTED");
         repository.audit(id, "SUBMIT", "diagnosis-doctor", "提交审核");
         return submitted;
     }
 
     public Report approve(Long id) {
-        requireReport(id);
+        Report report = requireReport(id);
+        requireStatus(report, "SUBMITTED");
         Report approved = repository.updateStatus(id, "APPROVED");
         repository.audit(id, "APPROVE", "audit-doctor", "审核通过");
         return approved;
     }
 
     public Report reject(Long id, String reason) {
-        requireReport(id);
+        Report report = requireReport(id);
+        requireStatus(report, "SUBMITTED");
         Report rejected = repository.updateStatus(id, "REJECTED");
         repository.audit(id, "REJECT", "audit-doctor", reason);
         return rejected;
@@ -46,6 +49,7 @@ public class ReportService {
 
     public Report publish(Long id) {
         Report report = requireReport(id);
+        requireStatus(report, "APPROVED");
         String studyDescription = imageClient.studyDescription(report.studyId());
         examClient.markReported(report.examOrderId());
         Report published = repository.updateStatus(id, "PUBLISHED");
@@ -55,5 +59,11 @@ public class ReportService {
 
     private Report requireReport(Long id) {
         return repository.findById(id).orElseThrow(() -> new IllegalArgumentException("报告不存在"));
+    }
+
+    private static void requireStatus(Report report, String expectedStatus) {
+        if (!expectedStatus.equals(report.status())) {
+            throw new IllegalArgumentException("报告状态必须为 " + expectedStatus + "，当前状态为 " + report.status());
+        }
     }
 }

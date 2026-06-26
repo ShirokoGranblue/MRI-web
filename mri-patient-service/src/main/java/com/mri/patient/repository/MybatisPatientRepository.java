@@ -50,13 +50,13 @@ public class MybatisPatientRepository implements PatientRepository {
 
     @Override
     public Patient update(Patient patient) {
-        patientMapper.updateById(toEntity(patient));
+        ensureAffected(patientMapper.updateById(toEntity(patient)), "患者不存在");
         return patient;
     }
 
     @Override
     public void delete(Long id) {
-        patientMapper.deleteById(id);
+        ensureAffected(patientMapper.deleteById(id), "患者不存在");
     }
 
     @Override
@@ -68,7 +68,7 @@ public class MybatisPatientRepository implements PatientRepository {
 
     @Override
     public Contraindication updateContraindication(Contraindication contraindication) {
-        contraindicationMapper.updateById(toEntity(contraindication));
+        ensureAffected(contraindicationMapper.updateById(toEntity(contraindication)), "禁忌症不存在");
         return contraindication;
     }
 
@@ -85,7 +85,7 @@ public class MybatisPatientRepository implements PatientRepository {
 
     @Override
     public void deleteContraindication(Long id) {
-        contraindicationMapper.deleteById(id);
+        ensureAffected(contraindicationMapper.deleteById(id), "禁忌症不存在");
     }
 
     @Override
@@ -120,5 +120,11 @@ public class MybatisPatientRepository implements PatientRepository {
         entity.setDescription(contraindication.description());
         entity.setSeverity(contraindication.severity());
         return entity;
+    }
+
+    private static void ensureAffected(int affectedRows, String message) {
+        if (affectedRows <= 0) {
+            throw new IllegalArgumentException(message);
+        }
     }
 }

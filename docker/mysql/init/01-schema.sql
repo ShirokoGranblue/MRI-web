@@ -10,8 +10,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted TINYINT DEFAULT 0,
-  version INT DEFAULT 0,
-  UNIQUE KEY uk_mri_report_exam_order_id (exam_order_id)
+  version INT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS sys_role (
@@ -141,7 +140,8 @@ CREATE TABLE IF NOT EXISTS mri_report (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted TINYINT DEFAULT 0,
-  version INT DEFAULT 0
+  version INT DEFAULT 0,
+  UNIQUE KEY uk_mri_report_exam_order_id (exam_order_id)
 );
 
 CREATE TABLE IF NOT EXISTS mri_report_audit_log (
@@ -208,3 +208,5 @@ ON DUPLICATE KEY UPDATE file_name = VALUES(file_name);
 INSERT INTO mri_report (id, exam_order_id, study_id, findings, impression, status) VALUES
   (1, 1, 1, '双侧基底节区未见明确异常信号。', '头颅MRI未见明确急性异常。', 'DRAFT')
 ON DUPLICATE KEY UPDATE status = VALUES(status);
+
+

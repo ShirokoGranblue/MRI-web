@@ -24,14 +24,24 @@ public class ExamOrderService {
     }
 
     public ExamOrder start(Long id) {
+        requireStatus(id, "REQUESTED");
         return repository.updateStatus(id, "IN_PROGRESS");
     }
 
     public ExamOrder complete(Long id) {
+        requireStatus(id, "IN_PROGRESS");
         return repository.updateStatus(id, "COMPLETED");
     }
 
     public ExamOrder markReported(Long id) {
+        requireStatus(id, "COMPLETED");
         return repository.updateStatus(id, "REPORT_PUBLISHED");
+    }
+
+    private void requireStatus(Long id, String expectedStatus) {
+        ExamOrder order = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("检查申请不存在"));
+        if (!expectedStatus.equals(order.status())) {
+            throw new IllegalArgumentException("检查申请状态必须为 " + expectedStatus + "，当前状态为 " + order.status());
+        }
     }
 }

@@ -3,10 +3,12 @@ package com.mri.report.controller;
 import com.mri.common.api.ApiResult;
 import com.mri.common.api.PageResult;
 import com.mri.report.dto.CreateReportRequest;
+import com.mri.report.dto.PatientReportView;
 import com.mri.report.model.Report;
 import com.mri.report.model.ReportAuditLog;
 import com.mri.report.repository.ReportRepository;
 import com.mri.report.service.ReportService;
+import com.mri.report.service.PatientReportQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,10 +30,18 @@ import java.util.List;
 public class ReportController {
     private final ReportService service;
     private final ReportRepository repository;
+    private final PatientReportQueryService patientQuery;
 
-    public ReportController(ReportService service, ReportRepository repository) {
+    public ReportController(ReportService service, ReportRepository repository, PatientReportQueryService patientQuery) {
         this.service = service;
         this.repository = repository;
+        this.patientQuery = patientQuery;
+    }
+
+    @Operation(summary = "当前患者本人报告进度")
+    @GetMapping("/mine")
+    public ApiResult<List<PatientReportView>> mine(@RequestHeader("X-Authenticated-User") String username) {
+        return ApiResult.ok(patientQuery.findMine(username));
     }
 
     @Operation(summary = "报告新增")

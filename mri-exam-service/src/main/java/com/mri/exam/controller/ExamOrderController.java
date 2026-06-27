@@ -3,10 +3,12 @@ package com.mri.exam.controller;
 import com.mri.common.api.ApiResult;
 import com.mri.common.api.PageResult;
 import com.mri.exam.dto.CreateExamOrderRequest;
+import com.mri.exam.dto.PatientExamView;
 import com.mri.exam.model.ExamOrder;
 import com.mri.exam.model.MriSchedule;
 import com.mri.exam.repository.ExamOrderRepository;
 import com.mri.exam.service.ExamOrderService;
+import com.mri.exam.service.PatientExamQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,10 +31,18 @@ import java.util.Map;
 public class ExamOrderController {
     private final ExamOrderService service;
     private final ExamOrderRepository repository;
+    private final PatientExamQueryService patientQuery;
 
-    public ExamOrderController(ExamOrderService service, ExamOrderRepository repository) {
+    public ExamOrderController(ExamOrderService service, ExamOrderRepository repository, PatientExamQueryService patientQuery) {
         this.service = service;
         this.repository = repository;
+        this.patientQuery = patientQuery;
+    }
+
+    @Operation(summary = "当前患者本人检查与排程")
+    @GetMapping("/mine")
+    public ApiResult<List<PatientExamView>> mine(@RequestHeader("X-Authenticated-User") String username) {
+        return ApiResult.ok(patientQuery.findMine(username));
     }
 
     @Operation(summary = "新增 MRI 检查申请")

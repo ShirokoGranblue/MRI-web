@@ -4,12 +4,14 @@ import com.mri.common.api.ApiResult;
 import com.mri.common.api.PageResult;
 import com.mri.image.config.ImageDemoProperties;
 import com.mri.image.dto.ArchiveStudyRequest;
+import com.mri.image.dto.PatientStudyView;
 import com.mri.image.model.DownloadLog;
 import com.mri.image.model.ImageFile;
 import com.mri.image.model.MriSeries;
 import com.mri.image.model.MriStudy;
 import com.mri.image.repository.ImageStudyRepository;
 import com.mri.image.service.ImageStudyService;
+import com.mri.image.service.PatientImageQueryService;
 import com.mri.image.service.ViewerManifest;
 import com.mri.image.storage.MinioImageStorage.LoadedObject;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -39,11 +42,39 @@ public class ImageStudyController {
     private final ImageStudyService service;
     private final ImageStudyRepository repository;
     private final ImageDemoProperties properties;
+    private final PatientImageQueryService patientQuery;
 
-    public ImageStudyController(ImageStudyService service, ImageStudyRepository repository, ImageDemoProperties properties) {
+    public ImageStudyController(ImageStudyService service, ImageStudyRepository repository, ImageDemoProperties properties,
+                                PatientImageQueryService patientQuery) {
         this.service = service;
         this.repository = repository;
         this.properties = properties;
+        this.patientQuery = patientQuery;
+    }
+
+    @Operation(summary = "当前患者本人影像进度")
+    @GetMapping("/mine/studies")
+    public ApiResult<List<PatientStudyView>> myStudies(@RequestHeader("X-Authenticated-User") String username) {
+        return ApiResult.ok(patientQuery.findMine(username));
+    }
+
+    @Operation(summary = "当前患者已发布影像预览清单")
+    @GetMapping("/mine/studies/{studyId}/viewer-manifest")
+    public ApiResult<ViewerManifest> myViewerManifest(@PathVariable Long studyId,
+                                                      @RequestHeader("X-Authenticated-User") String username) {
+        patientQuery.assertStudyVisible(studyId, username);
+        return ApiResult.ok(service.viewerManifest(studyId, properties.getWatermark(), false));
+    }
+
+    @Operation(summary = "当前患者已发布影像文件内容")
+    @GetMapping("/mine/files/{id}/content")
+    public ResponseEntity<byte[]> myFileContent(@PathVariable Long id,
+                                                @RequestHeader("X-Authenticated-User") String username) {
+        patientQuery.assertFileVisible(id, username);
+        LoadedObject obj = service.streamFile(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(obj.contentType()))
+                .body(obj.content());
     }
 
     @Operation(summary = "Study 归档")

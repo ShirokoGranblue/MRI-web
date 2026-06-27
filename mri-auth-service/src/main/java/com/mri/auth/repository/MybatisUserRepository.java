@@ -6,6 +6,8 @@ import com.mri.auth.entity.UserRoleEntity;
 import com.mri.auth.mapper.UserMapper;
 import com.mri.auth.mapper.UserRoleMapper;
 import com.mri.auth.model.UserRecord;
+import com.mri.common.exception.ConflictException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -39,7 +41,11 @@ public class MybatisUserRepository implements UserRepository {
     @Override
     public UserRecord create(UserRecord user) {
         UserEntity entity = toEntity(user);
-        userMapper.insert(entity);
+        try {
+            userMapper.insert(entity);
+        } catch (DuplicateKeyException ex) {
+            throw new ConflictException("该用户名已被使用，请更换用户名");
+        }
         replaceRoles(entity.getId(), user.roles());
         return toRecord(entity);
     }

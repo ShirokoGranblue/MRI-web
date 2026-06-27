@@ -8,6 +8,7 @@ import java.time.LocalDate;
 @TableName("patient")
 public class PatientEntity extends BaseEntity {
     private String patientNo;
+    private String accountUsername;
     private String name;
     private String gender;
     private LocalDate birthDate;
@@ -19,6 +20,14 @@ public class PatientEntity extends BaseEntity {
 
     public void setPatientNo(String patientNo) {
         this.patientNo = patientNo;
+    }
+
+    public String getAccountUsername() {
+        return accountUsername;
+    }
+
+    public void setAccountUsername(String accountUsername) {
+        this.accountUsername = accountUsername;
     }
 
     public String getName() {

@@ -2,6 +2,8 @@ package com.mri.patient.controller;
 
 import com.mri.common.api.ApiResult;
 import com.mri.common.api.PageResult;
+import com.mri.patient.dto.PatientProfileRequest;
+import com.mri.patient.dto.PatientProfileView;
 import com.mri.patient.model.Contraindication;
 import com.mri.patient.model.Patient;
 import com.mri.patient.model.PatientExamHistory;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,6 +35,26 @@ public class PatientController {
     public PatientController(PatientService patientService, PatientRepository repository) {
         this.patientService = patientService;
         this.repository = repository;
+    }
+
+    @Operation(summary = "当前患者本人档案")
+    @GetMapping("/me")
+    public ApiResult<PatientProfileView> myProfile(@RequestHeader("X-Authenticated-User") String username) {
+        return ApiResult.ok(patientService.profileFor(username));
+    }
+
+    @Operation(summary = "当前患者首次建档")
+    @PostMapping("/me")
+    public ApiResult<PatientProfileView> createMyProfile(@RequestHeader("X-Authenticated-User") String username,
+                                                         @RequestBody PatientProfileRequest request) {
+        return ApiResult.ok(patientService.createProfile(username, request));
+    }
+
+    @Operation(summary = "当前患者修改本人档案")
+    @PutMapping("/me")
+    public ApiResult<PatientProfileView> updateMyProfile(@RequestHeader("X-Authenticated-User") String username,
+                                                         @RequestBody PatientProfileRequest request) {
+        return ApiResult.ok(patientService.updateProfile(username, request));
     }
 
     @Operation(summary = "新增患者")

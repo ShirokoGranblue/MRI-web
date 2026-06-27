@@ -2,6 +2,8 @@ package com.mri.auth.controller;
 
 import com.mri.auth.dto.LoginRequest;
 import com.mri.auth.dto.LoginResponse;
+import com.mri.auth.dto.RegisterRequest;
+import com.mri.auth.dto.RegisterResponse;
 import com.mri.auth.service.AuthService;
 import com.mri.common.api.ApiResult;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +33,12 @@ public class AuthController {
         return ApiResult.ok(authService.login(request));
     }
 
+    @Operation(summary = "患者注册")
+    @PostMapping("/register")
+    public ApiResult<RegisterResponse> register(@RequestBody RegisterRequest request) {
+        return ApiResult.ok(authService.register(request));
+    }
+
     @Operation(summary = "用户登出")
     @PostMapping("/logout")
     public ApiResult<Void> logout(@RequestHeader("Authorization") String authorization) {
@@ -41,13 +49,13 @@ public class AuthController {
     @Operation(summary = "刷新 token 演示")
     @PostMapping("/refresh")
     public ApiResult<Map<String, String>> refresh() {
-        return ApiResult.ok(Map.of("message", "演示版刷新接口，请重新登录获取新 token"));
+        return ApiResult.ok(Map.of("message", "请重新登录获取新 token"));
     }
 
     @Operation(summary = "当前登录用户")
     @GetMapping("/me")
-    public ApiResult<Map<String, String>> me() {
-        return ApiResult.ok(Map.of("username", "由网关 JWT 透传", "system", "MRI"));
+    public ApiResult<RegisterResponse> me(@RequestHeader("X-Authenticated-User") String username) {
+        return ApiResult.ok(authService.currentUser(username));
     }
 
     private static String stripBearer(String authorization) {

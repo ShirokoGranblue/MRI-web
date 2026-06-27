@@ -4,6 +4,7 @@ import com.mri.image.config.ImageDemoProperties;
 import com.mri.image.model.ImageFile;
 import com.mri.image.repository.ImageStudyRepository;
 import com.mri.image.service.ImageStudyService;
+import com.mri.image.service.PatientImageQueryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,7 +25,12 @@ class ImageStudyControllerTest {
         ImageStudyService service = mock(ImageStudyService.class);
         ImageStudyRepository repository = mock(ImageStudyRepository.class);
         ImageDemoProperties properties = mock(ImageDemoProperties.class);
-        ImageStudyController controller = new ImageStudyController(service, repository, properties);
+        ImageStudyController controller = new ImageStudyController(
+                service,
+                repository,
+                properties,
+                mock(PatientImageQueryService.class)
+        );
         MockMvc mvc = MockMvcBuilders.standaloneSetup(controller).build();
         MockMultipartFile file = new MockMultipartFile(
                 "file",

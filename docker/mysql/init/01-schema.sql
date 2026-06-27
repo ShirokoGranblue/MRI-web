@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS sys_user_role (
 CREATE TABLE IF NOT EXISTS patient (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   patient_no VARCHAR(64) NOT NULL UNIQUE,
+  account_username VARCHAR(64),
   name VARCHAR(64) NOT NULL,
   gender VARCHAR(16) NOT NULL,
   birth_date DATE,
@@ -44,7 +45,8 @@ CREATE TABLE IF NOT EXISTS patient (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted TINYINT DEFAULT 0,
-  version INT DEFAULT 0
+  version INT DEFAULT 0,
+  UNIQUE KEY uk_patient_account_username (account_username)
 );
 
 CREATE TABLE IF NOT EXISTS mri_contraindication (
@@ -163,7 +165,8 @@ INSERT INTO sys_role (id, role_code, role_name) VALUES
   (2, 'REGISTRAR', '登记人员'),
   (3, 'TECHNICIAN', '技师'),
   (4, 'RADIOLOGIST', '诊断医生'),
-  (5, 'AUDITOR', '审核医生')
+  (5, 'AUDITOR', '审核医生'),
+  (6, 'PATIENT', '患者')
 ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 
 INSERT INTO sys_user (id, username, password_hash, display_name, enabled) VALUES

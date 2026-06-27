@@ -8,6 +8,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiResult<Void> handleConflict(ConflictException ex) {
+        return ApiResult.fail("CONFLICT", ex.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResult<Void> handleForbidden(ForbiddenException ex) {
+        return ApiResult.fail("FORBIDDEN", ex.getMessage());
+    }
+
     @ExceptionHandler(BusinessException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResult<Void> handleBusiness(BusinessException ex) {

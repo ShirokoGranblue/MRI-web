@@ -47,6 +47,25 @@ class DatabaseSchemaTest {
         assertThat(missingColumns).isEmpty();
     }
 
+    @Test
+    void schemaSupportsPatientAccountBindingAndPatientRole() throws IOException {
+        String schema = Files.readString(schemaPath());
+
+        assertThat(schema).contains("account_username VARCHAR(64)");
+        assertThat(schema).contains("UNIQUE KEY uk_patient_account_username (account_username)");
+        assertThat(schema).contains("'PATIENT', '患者'");
+    }
+
+    @Test
+    void existingDatabaseMigrationIsIdempotent() throws IOException {
+        Path migration = schemaPath().resolveSibling("02-patient-account-migration.sql");
+
+        assertThat(Files.readString(migration))
+                .contains("information_schema.COLUMNS")
+                .contains("information_schema.STATISTICS")
+                .contains("'PATIENT', '患者'");
+    }
+
     private static Path schemaPath() {
         Path rootRelative = Path.of("docker", "mysql", "init", "01-schema.sql");
         if (Files.exists(rootRelative)) {

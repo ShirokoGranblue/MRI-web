@@ -3,6 +3,7 @@ import { beforeEach, test } from 'node:test';
 import {
   apiRequest,
   clearSession,
+  getStoredSession,
   getStoredUser,
   getToken,
   saveSession,
@@ -82,4 +83,34 @@ test('网络不可达时不暴露浏览器技术错误', async () => {
       return true;
     },
   );
+});
+
+test('会话保存显示名称和角色', () => {
+  saveSession({
+    token: 'patient-token',
+    username: 'patient01',
+    displayName: '张三',
+    roles: ['PATIENT'],
+  });
+
+  assert.deepEqual(getStoredSession(), {
+    token: 'patient-token',
+    username: 'patient01',
+    displayName: '张三',
+    roles: ['PATIENT'],
+  });
+});
+
+test('403 响应提示无权限但保留登录会话', async () => {
+  saveSession({ token: 'patient-token', username: 'patient01', roles: ['PATIENT'] });
+  globalThis.fetch = async () => new Response('', { status: 403 });
+
+  await assert.rejects(apiRequest('/api/exams/1/start', { method: 'POST' }), (error) => {
+    assert.equal(error.status, 403);
+    assert.equal(error.message, '当前账号没有执行此操作的权限');
+    return true;
+  });
+
+  assert.equal(getToken(), 'patient-token');
+  assert.equal(getStoredUser(), 'patient01');
 });

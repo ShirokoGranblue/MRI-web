@@ -66,30 +66,12 @@ export default function PatientsPage() {
     <div className="page-stack">
       <PageHeader
         title="患者档案"
-        subtitle="登记患者信息、MRI 禁忌症与检查历史"
+        subtitle="只读查看患者资料、MRI 禁忌症与检查历史"
         actions={<Button icon={RefreshCw} variant="secondary" onClick={() => refreshPatients(keyword)} busy={busyKey === 'patients'}>刷新</Button>}
       />
       <div className="toolbar">
         <SearchBar value={keyword} onChange={setKeyword} placeholder="按姓名或编号搜索" onSearch={() => refreshPatients(keyword)} />
       </div>
-
-      <section className="panel">
-        <SectionHeader
-          icon={editingId ? Pencil : Plus}
-          title={editingId ? '编辑患者' : '新增患者'}
-          actions={editingId ? <Button variant="ghost" onClick={resetForm}>取消</Button> : null}
-        />
-        <form className="form-grid" onSubmit={submit}>
-          <TextField label="患者编号" name="patientNo" value={form.patientNo} onChange={update} />
-          <TextField label="姓名" name="name" value={form.name} onChange={update} />
-          <SelectField label="性别" name="gender" value={form.gender} onChange={update} options={['男', '女']} />
-          <TextField label="出生日期" name="birthDate" type="date" value={form.birthDate} onChange={update} />
-          <TextField label="联系电话" name="phone" value={form.phone} onChange={update} />
-          <div className="form-submit">
-            <Button icon={Send} busy={busyKey === 'savePatient' || busyKey === 'createPatient'}>{editingId ? '保存' : '新增患者'}</Button>
-          </div>
-        </form>
-      </section>
 
       <section className="panel">
         <SectionHeader icon={Plus} title={`患者列表（${patients.length}）`} />
@@ -108,8 +90,6 @@ export default function PatientsPage() {
               render: (p) => (
                 <div className="table-actions">
                   <Button icon={Eye} variant="ghost" onClick={() => openDetail(p)}>详情</Button>
-                  <Button icon={Pencil} variant="ghost" onClick={() => startEdit(p)}>编辑</Button>
-                  <Button icon={Trash2} variant="ghost" onClick={() => remove(p)}>删除</Button>
                 </div>
               ),
             },
@@ -171,19 +151,12 @@ function PatientDetail({ detail, onClose }) {
                 <div className="contra-row" key={c.id}>
                   <StatusTag tone={c.severity === 'HIGH' ? 'danger' : 'warning'}>{c.type}</StatusTag>
                   <span className="contra-desc">{c.description || '-'}</span>
-                  <Button icon={Trash2} variant="ghost" onClick={() => removeContra(c)}>删除</Button>
                 </div>
               ))}
             </div>
           ) : (
             <p className="muted">暂无禁忌症记录。</p>
           )}
-          <form className="form-grid compact" onSubmit={addContra}>
-            <SelectField label="类型" name="type" value={cform.type} onChange={updateC} options={['心脏起搏器', '金属植入物', '幽闭恐惧', '肾功能不全', '妊娠']} />
-            <TextField label="说明" name="description" value={cform.description} onChange={updateC} placeholder="如：左膝钛合金内固定" />
-            <SelectField label="严重程度" name="severity" value={cform.severity} onChange={updateC} options={[{ value: 'HIGH', label: '高' }, { value: 'LOW', label: '低' }]} />
-            <div className="form-submit"><Button icon={Send} variant="secondary" busy={busyKey === 'addContra'}>登记</Button></div>
-          </form>
         </section>
 
         <section className="detail-section">

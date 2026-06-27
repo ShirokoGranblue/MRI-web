@@ -1,5 +1,7 @@
 const TOKEN_KEY = 'mri.frontend.token';
 const USER_KEY = 'mri.frontend.user';
+const DISPLAY_NAME_KEY = 'mri.frontend.displayName';
+const ROLES_KEY = 'mri.frontend.roles';
 
 export class ApiError extends Error {
   constructor(message, status, options) {
@@ -20,15 +22,38 @@ export function saveSession(session) {
   if (session?.username) {
     localStorage.setItem(USER_KEY, session.username);
   }
+  if (session?.displayName) {
+    localStorage.setItem(DISPLAY_NAME_KEY, session.displayName);
+  }
+  if (Array.isArray(session?.roles)) {
+    localStorage.setItem(ROLES_KEY, JSON.stringify(session.roles));
+  }
 }
 
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(DISPLAY_NAME_KEY);
+  localStorage.removeItem(ROLES_KEY);
 }
 
 export function getStoredUser() {
   return localStorage.getItem(USER_KEY) || '';
+}
+
+export function getStoredSession() {
+  let roles = [];
+  try {
+    roles = JSON.parse(localStorage.getItem(ROLES_KEY) || '[]');
+  } catch {
+    roles = [];
+  }
+  return {
+    token: getToken(),
+    username: getStoredUser(),
+    displayName: localStorage.getItem(DISPLAY_NAME_KEY) || '',
+    roles: Array.isArray(roles) ? roles : [],
+  };
 }
 
 function parsePayload(text) {
@@ -130,6 +155,7 @@ function toRecords(pageResult) {
 export const api = {
   // 认证
   login: (body) => apiRequest('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  register: (body) => apiRequest('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   logout: () => apiRequest('/api/auth/logout', { method: 'POST' }),
   me: () => apiRequest('/api/auth/me'),
 
@@ -145,6 +171,9 @@ export const api = {
   createContraindication: (patientId, body) => apiRequest(`/api/patients/${patientId}/contraindications`, { method: 'POST', body: JSON.stringify(body) }),
   deleteContraindication: (id) => apiRequest(`/api/patients/contraindications/${id}`, { method: 'DELETE' }),
   examHistory: (patientId) => apiRequest(`/api/patients/${patientId}/exam-history`).then(toRecords),
+  myProfile: () => apiRequest('/api/patients/me'),
+  createMyProfile: (body) => apiRequest('/api/patients/me', { method: 'POST', body: JSON.stringify(body) }),
+  updateMyProfile: (body) => apiRequest('/api/patients/me', { method: 'PUT', body: JSON.stringify(body) }),
 
   // 检查申请与排程
   exams: (page = 1, size = 10, status = '') =>
@@ -159,6 +188,7 @@ export const api = {
   schedules: (examOrderId) => apiRequest(`/api/exams/${examOrderId}/schedules`).then(toRecords),
   createSchedule: (body) => apiRequest('/api/exams/schedules', { method: 'POST', body: JSON.stringify(body) }),
   deleteSchedule: (id) => apiRequest(`/api/exams/schedules/${id}`, { method: 'DELETE' }),
+  myExams: () => apiRequest('/api/exams/mine').then(toRecords),
 
   // 影像归档（图像管理）
   studies: (page = 1, size = 10, keyword = '') =>
@@ -181,6 +211,10 @@ export const api = {
   downloadStudy: (studyId, reason) =>
     apiRequest(`/api/images/studies/${studyId}/download?reason=${encodeURIComponent(reason || '')}`, { method: 'POST' }),
   downloadLogs: (studyId) => apiRequest(`/api/images/studies/${studyId}/download-logs`).then(toRecords),
+  myStudies: () => apiRequest('/api/images/mine/studies').then(toRecords).then((records) =>
+    records.map((item) => ({ ...item.study, fileCount: item.fileCount, reportPublished: item.reportPublished }))),
+  myViewerManifest: (studyId) => apiRequest(`/api/images/mine/studies/${studyId}/viewer-manifest`),
+  myFileContent: (id) => apiBlob(`/api/images/mine/files/${id}/content`),
 
   // 诊断报告
   reports: (page = 1, size = 10, status = '') =>
@@ -195,6 +229,7 @@ export const api = {
   reopenReport: (id) => apiRequest(`/api/reports/${id}/reopen`, { method: 'POST' }),
   publishReport: (id) => apiRequest(`/api/reports/${id}/publish`, { method: 'POST' }),
   auditLogs: (id) => apiRequest(`/api/reports/${id}/audit-logs`).then(toRecords),
+  myReports: () => apiRequest('/api/reports/mine').then(toRecords),
 
   // 系统设置
   demoConfig: () => apiRequest('/api/images/demo/config'),

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, clearSession, getToken, getStoredUser, saveSession } from './api.js';
+import { api, clearSession, getStoredSession, saveSession } from './api.js';
+import { isPatientRole } from './role-utils.js';
 
 export const statusLabel = {
   REQUESTED: '待检查',
@@ -32,10 +33,15 @@ export const statusTone = {
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [token, setToken] = useState(getToken());
-  const [username, setUsername] = useState(getStoredUser());
+  const stored = getStoredSession();
+  const [token, setToken] = useState(stored.token);
+  const [username, setUsername] = useState(stored.username);
+  const [displayName, setDisplayName] = useState(stored.displayName);
+  const [roles, setRoles] = useState(stored.roles);
   const [busyKey, setBusyKey] = useState('');
+  const [notice, setNotice] = useState(null);
   const [patients, setPatients] = useState([]);
+  const [patientProfile, setPatientProfile] = useState(null);
   const [exams, setExams] = useState([]);
   const [studies, setStudies] = useState([]);
   const [reports, setReports] = useState([]);
@@ -44,6 +50,23 @@ export function AppProvider({ children }) {
   ]);
 
   const loggedIn = Boolean(token);
+  const isPatient = isPatientRole(roles);
+
+  const notify = useCallback((type, title, detail) => {
+    setNotice({
+      id: Date.now(),
+      type,
+      title,
+      detail,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const delay = notice.type === 'error' ? 5000 : notice.type === 'warning' ? 4000 : 3500;
+    const timer = window.setTimeout(() => setNotice(null), delay);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const log = useCallback((type, title, detail) => {
     setLogs((current) => [
@@ -59,30 +82,43 @@ export function AppProvider({ children }) {
   }, []);
 
   const runAction = useCallback(
-    async (key, title, fn, onSuccess) => {
+    async (key, title, fn, onSuccess, options = {}) => {
       setBusyKey(key);
       try {
         const data = await fn();
         onSuccess?.(data);
-        log('success', title, '操作成功');
+        if (options.log !== false && !isPatient) {
+          log('success', title, options.successMessage || '操作成功');
+        }
+        if (options.notify !== false) {
+          notify('success', title, options.successMessage || '操作成功');
+        }
         return data;
       } catch (error) {
         if (error.status === 401) {
           clearSession();
           setToken('');
           setUsername('');
+          setDisplayName('');
+          setRoles([]);
           setPatients([]);
+          setPatientProfile(null);
           setExams([]);
           setStudies([]);
           setReports([]);
         }
-        log('error', title, error.message || '操作失败');
+        if (options.log !== false && !isPatient) {
+          log('error', title, error.message || '操作失败');
+        }
+        if (options.notify !== false) {
+          notify('error', title, error.message || '操作失败');
+        }
         return null;
       } finally {
         setBusyKey('');
       }
     },
-    [log],
+    [isPatient, log, notify],
   );
 
   const login = useCallback(
@@ -92,13 +128,24 @@ export function AppProvider({ children }) {
         '登录',
         () => api.login(form),
         (result) => {
-          saveSession({ ...result, username: form.username });
+          saveSession(result);
           setToken(result.token);
-          setUsername(form.username);
+          setUsername(result.username);
+          setDisplayName(result.displayName);
+          setRoles(result.roles || []);
         },
+        { log: false },
       );
       return data;
     },
+    [runAction],
+  );
+
+  const register = useCallback(
+    (form) => runAction('register', '患者注册', () => api.register(form), undefined, {
+      log: false,
+      successMessage: '注册成功，请使用新账号登录',
+    }),
     [runAction],
   );
 
@@ -109,42 +156,72 @@ export function AppProvider({ children }) {
         await api.logout();
       }
       log('success', '退出登录', '已安全退出');
+      notify('success', '退出登录', '已安全退出');
     } catch (error) {
       log('warning', '退出登录', error.message || '本地会话已清理');
+      notify('warning', '退出登录', error.message || '本地会话已清理');
     } finally {
       clearSession();
       setToken('');
       setUsername('');
+      setDisplayName('');
+      setRoles([]);
+      setPatientProfile(null);
       setBusyKey('');
     }
-  }, [token, log]);
+  }, [token, log, notify]);
 
   const refreshPatients = useCallback(
-    (keyword = '') =>
+    (keyword = '', notifyUser = true) =>
       runAction('patients', '加载患者列表', () => api.patients(1, 10, keyword), (records) => {
         setPatients(records);
-      }),
+      }, { notify: notifyUser }),
     [runAction],
   );
   const refreshExams = useCallback(
-    (status = '') =>
+    (status = '', notifyUser = true) =>
       runAction('exams', '加载检查列表', () => api.exams(1, 10, status), (records) => {
         setExams(records);
-      }),
+      }, { notify: notifyUser }),
     [runAction],
   );
   const refreshStudies = useCallback(
-    (keyword = '') =>
+    (keyword = '', notifyUser = true) =>
       runAction('studies', '加载影像列表', () => api.studies(1, 10, keyword), (records) => {
         setStudies(records);
-      }),
+      }, { notify: notifyUser }),
     [runAction],
   );
   const refreshReports = useCallback(
-    (status = '') =>
+    (status = '', notifyUser = true) =>
       runAction('reports', '加载报告列表', () => api.reports(1, 10, status), (records) => {
         setReports(records);
+      }, { notify: notifyUser }),
+    [runAction],
+  );
+
+  const refreshMyProfile = useCallback(
+    (notifyUser = false) =>
+      runAction('myProfile', '加载本人资料', () => api.myProfile(), setPatientProfile, {
+        notify: notifyUser,
+        log: false,
       }),
+    [runAction],
+  );
+
+  const refreshPatientData = useCallback(
+    (notifyUser = false) =>
+      runAction(
+        'patientData',
+        '刷新个人进度',
+        () => Promise.all([api.myExams(), api.myStudies(), api.myReports()]),
+        ([nextExams, nextStudies, nextReports]) => {
+          setExams(nextExams);
+          setStudies(nextStudies);
+          setReports(nextReports);
+        },
+        { notify: notifyUser, log: false },
+      ),
     [runAction],
   );
 
@@ -152,11 +229,51 @@ export function AppProvider({ children }) {
     if (!loggedIn) {
       return;
     }
-    refreshPatients();
-    refreshExams();
-    refreshStudies();
-    refreshReports();
-  }, [loggedIn, refreshPatients, refreshExams, refreshStudies, refreshReports]);
+    if (isPatient) {
+      refreshMyProfile().then((profile) => {
+        if (profile?.profileComplete) {
+          refreshPatientData();
+        }
+      });
+      return;
+    }
+    refreshPatients('', false);
+    refreshExams('', false);
+    refreshStudies('', false);
+    refreshReports('', false);
+  }, [loggedIn, isPatient, refreshPatients, refreshExams, refreshStudies, refreshReports, refreshMyProfile, refreshPatientData]);
+
+  useEffect(() => {
+    if (!loggedIn || !isPatient || !patientProfile?.profileComplete) {
+      return undefined;
+    }
+    let running = false;
+    let timer;
+    const refresh = async () => {
+      if (running || document.visibilityState === 'hidden') return;
+      running = true;
+      await refreshPatientData(false);
+      running = false;
+    };
+    const start = () => {
+      window.clearInterval(timer);
+      timer = window.setInterval(refresh, 5000);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        window.clearInterval(timer);
+      } else {
+        refresh();
+        start();
+      }
+    };
+    start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [loggedIn, isPatient, patientProfile?.profileComplete, refreshPatientData]);
 
   const patientName = useCallback(
     (id) => patients.find((p) => p.id === Number(id))?.name || `患者${id}`,
@@ -181,9 +298,13 @@ export function AppProvider({ children }) {
     () => ({
       token,
       username,
+      displayName,
+      roles,
+      isPatient,
       loggedIn,
       busyKey,
       patients,
+      patientProfile,
       exams,
       studies,
       reports,
@@ -193,21 +314,38 @@ export function AppProvider({ children }) {
       setStudies,
       setReports,
       log,
+      notify,
       runAction,
       login,
+      register,
       logout,
       refreshPatients,
       refreshExams,
       refreshStudies,
       refreshReports,
+      refreshMyProfile,
+      refreshPatientData,
       patientName,
       examLabel,
       studyLabel,
     }),
-    [token, username, loggedIn, busyKey, patients, exams, studies, reports, logs, log, runAction, login, logout, refreshPatients, refreshExams, refreshStudies, refreshReports, patientName, examLabel, studyLabel],
+    [token, username, displayName, roles, isPatient, loggedIn, busyKey, patients, patientProfile, exams, studies, reports, logs, log, notify, runAction, login, register, logout, refreshPatients, refreshExams, refreshStudies, refreshReports, refreshMyProfile, refreshPatientData, patientName, examLabel, studyLabel],
   );
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+      {notice ? (
+        <div className={`global-notice ${notice.type}`} role="status" aria-live="polite">
+          <div>
+            <strong>{notice.title}</strong>
+            <span>{notice.detail}</span>
+          </div>
+          <button type="button" aria-label="关闭提示" onClick={() => setNotice(null)}>×</button>
+        </div>
+      ) : null}
+    </AppContext.Provider>
+  );
 }
 
 export function useApp() {

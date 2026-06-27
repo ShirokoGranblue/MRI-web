@@ -11,3 +11,4 @@ target-demo-output-token.txt
 mri-frontend/node_modules/
 mri-frontend/dist/
 mri-frontend/.vite/
+.worktrees/

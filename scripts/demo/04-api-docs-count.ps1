@@ -11,7 +11,7 @@ foreach ($url in $docs) {
   $json = Invoke-RestMethod -Uri $url
   $count = 0
   foreach ($path in $json.paths.PSObject.Properties) {
-    $count += $path.Value.PSObject.Properties.Count
+    $count += @($path.Value.PSObject.Properties).Count
   }
   Write-Host "$url -> $count APIs"
   $total += $count

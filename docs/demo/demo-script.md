@@ -1,8 +1,10 @@
 # 演示脚本说明
 
+正式录制演示视频时，除操作步骤外，还需要讲清楚项目定位、业务流程、技术选型、系统架构以及与原始 10 项考核要求的对应关系。完整讲解顺序和可直接使用的口播稿见 `docs/demo/video-narration.md`。
+
 ## 1. 启动中间件
 
-执行 `scripts/demo/01-start-infra.ps1`，启动 MySQL、Redis、Nacos、MinIO。演示 Nacos 页面：`http://localhost:8848/nacos`；MinIO 控制台：`http://localhost:9001`（账号 `mri` / `mri123456`），可查看影像对象存储桶 `mri-images`。
+执行 `scripts/demo/01-start-infra.ps1`，启动 MySQL、Redis、Nacos、MinIO。演示 Nacos 页面：`http://localhost:8848/nacos`；MinIO 控制台：`http://localhost:9101`（账号 `mri` / `mri123456`），可查看影像对象存储桶 `mri-images`。`9001` 保留给认证服务及其 Swagger。
 
 ## 2. 启动微服务
 

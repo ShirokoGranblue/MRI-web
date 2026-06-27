@@ -63,7 +63,7 @@
 
 ### 5.1 基础设施（docker-compose.yml）
 
-新增 minio 服务：镜像 `minio/minio:latest`，`server /data --console-address ":9001"`，环境 `MINIO_ROOT_USER=mri / MINIO_ROOT_PASSWORD=mri123456`，端口 `9000:9000`、`9001:9001`，卷 `mri-minio-data:/data`。`01-start-infra.ps1` 走 `docker compose up -d` 自动带上。MinIO 控制台 `http://localhost:9001`（mri/mri123456）便于答辩展示已存图像。
+新增 minio 服务：镜像 `minio/minio:latest`，`server /data --console-address ":9001"`，环境 `MINIO_ROOT_USER=mri / MINIO_ROOT_PASSWORD=mri123456`，端口 `9000:9000`、`9101:9001`，卷 `mri-minio-data:/data`。`01-start-infra.ps1` 显式启动 MinIO。MinIO 控制台 `http://localhost:9101`（mri/mri123456）便于答辩展示已存图像；宿主机 `9001` 保留给认证服务。
 
 ### 5.2 后端（mri-image-service）
 

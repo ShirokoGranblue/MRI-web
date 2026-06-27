@@ -119,9 +119,9 @@ public class ImageStudyController {
 
     @Operation(summary = "上传影像文件到对象存储")
     @PostMapping(value = "/studies/{studyId}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResult<ImageFile> uploadToStorage(@PathVariable Long studyId,
-                                                @RequestParam Long seriesId,
-                                                @RequestPart MultipartFile file) {
+    public ApiResult<ImageFile> uploadToStorage(@PathVariable("studyId") Long studyId,
+                                                @RequestParam("seriesId") Long seriesId,
+                                                @RequestPart("file") MultipartFile file) {
         return ApiResult.ok(service.uploadFile(seriesId, file));
     }
 

@@ -110,7 +110,7 @@ Bearer <登录返回的 token>
 
 按 `scripts/demo/` 下脚本编号顺序执行：
 
-1. `01-start-infra.ps1`：启动 MySQL、Redis、Nacos。
+1. `01-start-infra.ps1`：启动 MySQL、Redis、Nacos、MinIO。
 2. `02-start-services.ps1`：启动 6 个微服务。
 3. `03-login.ps1`：登录并保存 token。
 4. `04-api-docs-count.ps1`：统计接口数量。
@@ -135,11 +135,11 @@ Redis 未连接：确认 `mri-redis` 容器运行，端口为 `6379`。
 
 接口文档打不开：确认对应服务端口已启动，例如影像服务端口为 `9004`。
 
-端口占用：检查 `8080`、`9001` 至 `9005`、`8848`、`9848`、`3307`、`6379` 是否被占用。
+端口占用：检查 `8080`、`9000`、`9001` 至 `9005`、`9101`、`8848`、`9848`、`3307`、`6379` 是否被占用。`9001` 为认证服务，`9101` 为 MinIO 控制台。
 
 配置修改未刷新：等待 3 至 5 秒后重新调用接口，确认 Nacos dataId 为 `mri-image-service.yaml`。
 
-影像上传失败/预览无图：执行 `docker compose ps` 确认 `mri-minio` 容器运行，端口为 `9000`（API）与 `9001`（控制台）。MinIO 控制台 `http://localhost:9001`（账号 `mri` / `mri123456`）可查看 `mri-images` 桶内已上传对象。首次启动时影像服务会自动创建 `mri-images` 桶。
+影像上传失败/预览无图：执行 `docker compose ps` 确认 `mri-minio` 容器运行，端口为 `9000`（API）与 `9101`（控制台宿主机端口）。MinIO 控制台 `http://localhost:9101`（账号 `mri` / `mri123456`）可查看 `mri-images` 桶内已上传对象。`9001` 保留给认证服务及其 Swagger。首次启动时影像服务会自动创建 `mri-images` 桶。
 
 ## 停止系统
 

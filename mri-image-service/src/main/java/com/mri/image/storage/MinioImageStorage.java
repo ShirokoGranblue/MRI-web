@@ -11,6 +11,7 @@ import io.minio.StatObjectArgs;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
@@ -26,21 +27,23 @@ public class MinioImageStorage {
     private final MinioProperties properties;
     private final MinioClient client;
 
+    @Autowired
     public MinioImageStorage(MinioProperties properties) {
-        this.properties = properties;
-        this.client = MinioClient.builder()
+        this(properties, MinioClient.builder()
                 .endpoint(properties.endpoint())
                 .credentials(properties.accessKey(), properties.secretKey())
-                .build();
+                .build());
+    }
+
+    MinioImageStorage(MinioProperties properties, MinioClient client) {
+        this.properties = properties;
+        this.client = client;
     }
 
     @PostConstruct
     void ensureBucket() {
         try {
-            if (!client.bucketExists(BucketExistsArgs.builder().bucket(properties.bucket()).build())) {
-                client.makeBucket(MakeBucketArgs.builder().bucket(properties.bucket()).build());
-                log.info("Created MinIO bucket {}", properties.bucket());
-            }
+            ensureBucketExists();
         } catch (Exception ex) {
             log.warn("MinIO bucket check/create failed (is minio running?): {}", ex.getMessage());
         }
@@ -48,6 +51,7 @@ public class MinioImageStorage {
 
     public void putObject(String objectKey, InputStream in, long size, String contentType) {
         try {
+            ensureBucketExists();
             client.putObject(PutObjectArgs.builder()
                     .bucket(properties.bucket())
                     .object(objectKey)
@@ -56,6 +60,13 @@ public class MinioImageStorage {
                     .build());
         } catch (Exception ex) {
             throw new IllegalStateException("上传影像到对象存储失败: " + ex.getMessage(), ex);
+        }
+    }
+
+    private synchronized void ensureBucketExists() throws Exception {
+        if (!client.bucketExists(BucketExistsArgs.builder().bucket(properties.bucket()).build())) {
+            client.makeBucket(MakeBucketArgs.builder().bucket(properties.bucket()).build());
+            log.info("Created MinIO bucket {}", properties.bucket());
         }
     }
 

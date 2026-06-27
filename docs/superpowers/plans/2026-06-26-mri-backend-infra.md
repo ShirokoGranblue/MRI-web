@@ -40,7 +40,7 @@ Insert after the `nacos:` service block, before `volumes:`:
       MINIO_ROOT_PASSWORD: mri123456
     ports:
       - "9000:9000"
-      - "9001:9001"
+      - "9101:9001"
     volumes:
       - mri-minio-data:/data
 ```

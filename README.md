@@ -32,6 +32,8 @@
 ./scripts/demo/02-start-services.ps1
 ```
 
+基础设施脚本会同时启动 MySQL、Redis、Nacos 和 MinIO。认证服务及 Swagger 使用 `9001`，MinIO API 使用 `9000`，MinIO 管理控制台使用 `9101`，避免端口冲突。
+
 如果本机 `8080` 已被占用，可把网关临时启动到其他端口，例如 `18080`：
 
 ```powershell

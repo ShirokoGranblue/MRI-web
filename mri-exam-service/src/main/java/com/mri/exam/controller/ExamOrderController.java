@@ -42,8 +42,14 @@ public class ExamOrderController {
 
     @Operation(summary = "取消 MRI 检查申请")
     @PostMapping("/{id}/cancel")
-    public ApiResult<Void> cancel(@PathVariable Long id) {
-        repository.cancel(id);
+    public ApiResult<ExamOrder> cancel(@PathVariable Long id) {
+        return ApiResult.ok(service.cancel(id));
+    }
+
+    @Operation(summary = "删除 MRI 检查申请")
+    @DeleteMapping("/{id}")
+    public ApiResult<Void> delete(@PathVariable Long id) {
+        service.delete(id);
         return ApiResult.ok();
     }
 
@@ -65,6 +71,12 @@ public class ExamOrderController {
                                                  @RequestParam(defaultValue = "10") long size,
                                                  @RequestParam(required = false) String status) {
         return ApiResult.ok(repository.page(page, size, status));
+    }
+
+    @Operation(summary = "按患者查询检查申请")
+    @GetMapping("/by-patient/{patientId}")
+    public ApiResult<List<ExamOrder>> byPatient(@PathVariable Long patientId) {
+        return ApiResult.ok(service.listByPatient(patientId));
     }
 
     @Operation(summary = "新增检查排程")

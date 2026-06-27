@@ -9,10 +9,8 @@ import com.mri.patient.mapper.ContraindicationMapper;
 import com.mri.patient.mapper.PatientMapper;
 import com.mri.patient.model.Contraindication;
 import com.mri.patient.model.Patient;
-import com.mri.patient.model.PatientExamHistory;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -86,11 +84,6 @@ public class MybatisPatientRepository implements PatientRepository {
     @Override
     public void deleteContraindication(Long id) {
         ensureAffected(contraindicationMapper.deleteById(id), "禁忌症不存在");
-    }
-
-    @Override
-    public List<PatientExamHistory> examHistory(Long patientId) {
-        return List.of(new PatientExamHistory(patientId, "头颅MRI平扫", "REPORT_PUBLISHED", LocalDateTime.now().minusDays(3)));
     }
 
     private static Patient toModel(PatientEntity entity) {

@@ -38,6 +38,23 @@ public class ExamOrderService {
         return repository.updateStatus(id, "REPORT_PUBLISHED");
     }
 
+    public ExamOrder cancel(Long id) {
+        ExamOrder order = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("检查申请不存在"));
+        if (!java.util.Set.of("REQUESTED", "IN_PROGRESS").contains(order.status())) {
+            throw new IllegalArgumentException("仅待检查或进行中的检查可取消，当前状态为 " + order.status());
+        }
+        return repository.cancel(id);
+    }
+
+    public void delete(Long id) {
+        repository.findById(id).orElseThrow(() -> new IllegalArgumentException("检查申请不存在"));
+        repository.delete(id);
+    }
+
+    public java.util.List<ExamOrder> listByPatient(Long patientId) {
+        return repository.listByPatient(patientId);
+    }
+
     private void requireStatus(Long id, String expectedStatus) {
         ExamOrder order = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("检查申请不存在"));
         if (!expectedStatus.equals(order.status())) {

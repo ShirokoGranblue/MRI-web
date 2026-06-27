@@ -20,6 +20,13 @@ public class ReportService {
     }
 
     public Report create(CreateReportRequest request) {
+        String examStatus = examClient.examStatus(request.examOrderId());
+        if (!"COMPLETED".equals(examStatus)) {
+            throw new IllegalArgumentException("检查尚未完成，不能创建报告");
+        }
+        if (!imageClient.studyExists(request.studyId())) {
+            throw new IllegalArgumentException("对应影像未归档，不能创建报告");
+        }
         return repository.createDraft(request);
     }
 
@@ -45,6 +52,14 @@ public class ReportService {
         Report rejected = repository.updateStatus(id, "REJECTED");
         repository.audit(id, "REJECT", "audit-doctor", reason);
         return rejected;
+    }
+
+    public Report reopen(Long id) {
+        Report report = requireReport(id);
+        requireStatus(report, "REJECTED");
+        Report draft = repository.updateStatus(id, "DRAFT");
+        repository.audit(id, "REOPEN", "diagnosis-doctor", "回到草稿修改");
+        return draft;
     }
 
     public Report publish(Long id) {

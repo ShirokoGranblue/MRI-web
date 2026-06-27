@@ -15,6 +15,10 @@ spring:
     redis:
       host: localhost
       port: 6379
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   cloud:
     openfeign:
       client:
@@ -34,6 +38,11 @@ mri:
   image:
     watermark: 医院MRI影像系统
     download-enabled: true
+    minio:
+      endpoint: http://localhost:9000
+      access-key: mri
+      secret-key: mri123456
+      bucket: mri-images
   cache:
     study-ttl-seconds: 300
 

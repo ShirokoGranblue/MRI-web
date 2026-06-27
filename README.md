@@ -1,6 +1,6 @@
 # 医院核磁共振图像信息管理分布式微服务系统
 
-本项目是一套用于课程演示和答辩展示的 Spring Boot 3 分布式微服务系统，主题为医院核磁共振图像信息管理。系统覆盖患者建档、MRI 检查申请、检查排程、影像 Study/Series/Image 元数据归档、影像预览清单、诊断报告审核发布、登录认证、网关访问、Redis 缓存、Nacos 注册发现和配置刷新。
+本项目是一套用于课程演示和答辩展示的 Spring Boot 3 分布式微服务系统，主题为医院核磁共振图像信息管理。系统覆盖患者建档（含 MRI 禁忌症与检查历史）、MRI 检查申请与排程、影像 Study/Series/Image 元数据归档、基于 MinIO 的影像对象存储与上传预览、影像预览清单、诊断报告审核发布（含驳回回到草稿）、登录认证、网关访问、Redis 缓存、Nacos 注册发现和配置刷新。界面采用用户化语言，按功能分页，从登录页进入，各记录支持删除与编辑。
 
 ## 技术栈
 
@@ -9,7 +9,7 @@
 - Spring Cloud 2023.0.x
 - Spring Cloud Alibaba Nacos 2023.0.3.4
 - MyBatis-Plus 3.5.x
-- MySQL 8、Redis 7、Nacos 2.4
+- MySQL 8、Redis 7、Nacos 2.4、MinIO（影像对象存储）
 - Spring Cloud Gateway、OpenFeign、springdoc-openapi
 
 ## 模块
@@ -18,15 +18,29 @@
 - `mri-auth-service`：认证、用户、角色。
 - `mri-patient-service`：患者档案、MRI 禁忌症、检查历史。
 - `mri-exam-service`：MRI 检查申请、排程、状态流转。
-- `mri-image-service`：Study、Series、Image 文件、viewer manifest、下载审计。
+- `mri-image-service`：Study、Series、Image 文件、viewer manifest、下载审计、MinIO 对象存储与上传。
 - `mri-report-service`：诊断报告、审核、发布。
 - `mri-gateway`：统一 API 网关、JWT 鉴权、路由。
 - `mri-frontend`：中文前端工作台，通过 API 网关访问各微服务。
 
 ## 快速运行
 
+推荐使用脚本后台启动全部后端服务，避免 `spring-boot:run` 在当前终端阻塞后只启动第一个服务：
+
 ```powershell
-docker compose up -d mysql redis nacos
+./scripts/demo/01-start-infra.ps1
+./scripts/demo/02-start-services.ps1
+```
+
+如果本机 `8080` 已被占用，可把网关临时启动到其他端口，例如 `18080`：
+
+```powershell
+./scripts/demo/02-start-services.ps1 -GatewayPort 18080
+```
+
+如需手动启动，每个 `spring-boot:run` 命令都要放在单独终端中运行：
+
+```powershell
 mvn -DskipTests install
 mvn -pl mri-auth-service spring-boot:run
 mvn -pl mri-patient-service spring-boot:run
@@ -43,6 +57,7 @@ mvn -pl mri-gateway spring-boot:run
 
 网关入口：`http://localhost:8080/api/**`
 
+系统启动后业务表为空（不含样例数据），登录后由用户自行登记患者、检查、影像与报告；如需清空已有库中的历史数据，执行 `scripts/db/clear-business-data.sql`（保留登录账号）。
 
 ## 前端界面
 
@@ -54,7 +69,27 @@ npm install
 npm run dev
 ```
 
+如果网关使用了非默认端口，例如 `18080`，启动前端前设置代理目标：
+
+```powershell
+cd mri-frontend
+$env:VITE_API_PROXY_TARGET="http://localhost:18080"
+npm run dev
+```
+
 浏览器访问：`http://localhost:5173`
+
+前端采用 React + react-router 按功能分页，从登录页进入，使用用户化语言（不暴露 Study/Series/UID/Token/Redis/Nacos 等技术术语）。主要页面：
+
+- **登录页**：默认账号 `admin / admin123`，登录后进入工作台。
+- **工作台**：数量概览、检查流程示意、待办事项（待检查/检查中/待审核/草稿）、最近操作。
+- **患者档案**：搜索、新增、编辑、删除；患者详情含 MRI 禁忌症登记与检查历史。
+- **检查申请**：状态筛选、新增（下拉选患者）、取消/开始/完成（按状态启用）、编辑、删除（连带排程）；检查排程子区可新增/删除。
+- **影像归档**：影像检查列表（按患者关联）、保存/删除（级联）；选中后管理序列与影像文件，支持上传图像到 MinIO 对象存储、真实缩略图预览、删除，及「快速预览」。
+- **诊断报告**：状态筛选、新增（下拉选检查/影像）、编辑、删除（随时可删，含已发布）、提交/审核/驳回/回到草稿/发布（按状态启用）、审核日志时间线。
+- **系统设置**：报告水印与影像下载开关（读取配置中心）。
+- **操作记录**：全部操作的成功与失败记录。
+
 各服务 Swagger：
 
 - Auth: `http://localhost:9001/swagger-ui.html`

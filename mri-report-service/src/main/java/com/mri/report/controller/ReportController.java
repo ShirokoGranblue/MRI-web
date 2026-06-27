@@ -84,6 +84,12 @@ public class ReportController {
         return ApiResult.ok(service.reject(id, reason));
     }
 
+    @Operation(summary = "回到草稿修改")
+    @PostMapping("/{id}/reopen")
+    public ApiResult<Report> reopen(@PathVariable Long id) {
+        return ApiResult.ok(service.reopen(id));
+    }
+
     @Operation(summary = "发布报告")
     @PostMapping("/{id}/publish")
     public ApiResult<Report> publish(@PathVariable Long id) {

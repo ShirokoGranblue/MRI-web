@@ -1,5 +1,6 @@
 package com.mri.patient.service;
 
+import com.mri.patient.client.ExamClient;
 import com.mri.patient.model.Patient;
 import com.mri.patient.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ class PatientServiceCacheTest {
         Patient patient = new Patient(7L, "P20260618001", "张三", "男", LocalDate.of(1988, 5, 1), "13800000000");
         when(repository.findById(7L)).thenReturn(Optional.of(patient));
 
-        PatientService service = new PatientService(repository, cache);
+        PatientService service = new PatientService(repository, cache, mock(ExamClient.class));
 
         assertThat(service.findById(7L).name()).isEqualTo("张三");
         assertThat(service.findById(7L).name()).isEqualTo("张三");
@@ -38,7 +39,7 @@ class PatientServiceCacheTest {
         when(repository.findById(7L)).thenReturn(Optional.of(oldPatient), Optional.of(newPatient));
         when(repository.update(newPatient)).thenReturn(newPatient);
 
-        PatientService service = new PatientService(repository, cache);
+        PatientService service = new PatientService(repository, cache, mock(ExamClient.class));
         service.findById(7L);
         service.update(newPatient);
 

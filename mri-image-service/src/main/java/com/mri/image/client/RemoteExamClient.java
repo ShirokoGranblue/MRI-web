@@ -18,4 +18,13 @@ public class RemoteExamClient implements ExamClient {
             return false;
         }
     }
+
+    @Override
+    public String examStatus(Long examOrderId) {
+        try {
+            return api.status(examOrderId).data().get("status");
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
 }

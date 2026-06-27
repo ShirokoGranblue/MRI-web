@@ -11,4 +11,7 @@ import java.util.Map;
 public interface ExamFeignApi {
     @GetMapping("/{id}/exists")
     ApiResult<Map<String, Boolean>> exists(@PathVariable("id") Long id);
+
+    @GetMapping("/{id}/status")
+    ApiResult<Map<String, String>> status(@PathVariable("id") Long id);
 }

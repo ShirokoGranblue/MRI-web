@@ -101,7 +101,7 @@ public class PatientController {
     @Operation(summary = "患者检查历史")
     @GetMapping("/{patientId}/exam-history")
     public ApiResult<List<PatientExamHistory>> examHistory(@PathVariable Long patientId) {
-        return ApiResult.ok(repository.examHistory(patientId));
+        return ApiResult.ok(patientService.examHistory(patientId));
     }
 
     @Operation(summary = "患者存在性校验")

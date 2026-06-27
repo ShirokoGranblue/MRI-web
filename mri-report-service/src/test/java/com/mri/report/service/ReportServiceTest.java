@@ -23,10 +23,10 @@ class ReportServiceTest {
         ReportRepository repository = mock(ReportRepository.class);
         ImageClient imageClient = mock(ImageClient.class);
         ExamClient examClient = mock(ExamClient.class);
-        Report approved = new Report(31L, 12L, 5L, "双侧基底节区未见异常信号", "APPROVED");
+        Report approved = new Report(31L, 12L, 5L, "双侧基底节区未见异常信号", null, "APPROVED");
         when(repository.findById(31L)).thenReturn(Optional.of(approved));
         when(imageClient.studyDescription(5L)).thenReturn("头颅MRI");
-        when(repository.updateStatus(31L, "PUBLISHED")).thenReturn(new Report(31L, 12L, 5L, "双侧基底节区未见异常信号", "PUBLISHED"));
+        when(repository.updateStatus(31L, "PUBLISHED")).thenReturn(new Report(31L, 12L, 5L, "双侧基底节区未见异常信号", null, "PUBLISHED"));
 
         ReportService service = new ReportService(repository, imageClient, examClient);
         Report report = service.publish(31L);
@@ -43,7 +43,7 @@ class ReportServiceTest {
         ReportRepository repository = mock(ReportRepository.class);
         ImageClient imageClient = mock(ImageClient.class);
         ExamClient examClient = mock(ExamClient.class);
-        when(repository.findById(31L)).thenReturn(Optional.of(new Report(31L, 12L, 5L, "双侧基底节区未见异常信号", "DRAFT")));
+        when(repository.findById(31L)).thenReturn(Optional.of(new Report(31L, 12L, 5L, "双侧基底节区未见异常信号", null, "DRAFT")));
 
         ReportService service = new ReportService(repository, imageClient, examClient);
 
@@ -59,7 +59,7 @@ class ReportServiceTest {
         ReportRepository repository = mock(ReportRepository.class);
         ImageClient imageClient = mock(ImageClient.class);
         ExamClient examClient = mock(ExamClient.class);
-        when(repository.findById(31L)).thenReturn(Optional.of(new Report(31L, 12L, 5L, "双侧基底节区未见异常信号", "DRAFT")));
+        when(repository.findById(31L)).thenReturn(Optional.of(new Report(31L, 12L, 5L, "双侧基底节区未见异常信号", null, "DRAFT")));
 
         ReportService service = new ReportService(repository, imageClient, examClient);
 
@@ -75,10 +75,42 @@ class ReportServiceTest {
         ImageClient imageClient = mock(ImageClient.class);
         ExamClient examClient = mock(ExamClient.class);
         CreateReportRequest request = new CreateReportRequest(12L, 5L, "未见异常", "建议随访");
-        when(repository.createDraft(request)).thenReturn(new Report(31L, 12L, 5L, "未见异常", "DRAFT"));
+        when(examClient.examStatus(12L)).thenReturn("COMPLETED");
+        when(imageClient.studyExists(5L)).thenReturn(true);
+        when(repository.createDraft(request)).thenReturn(new Report(31L, 12L, 5L, "未见异常", "建议随访", "DRAFT"));
 
         ReportService service = new ReportService(repository, imageClient, examClient);
 
         assertThat(service.create(request).status()).isEqualTo("DRAFT");
+    }
+
+    @Test
+    void createRejectsUnlessExamCompleted() {
+        ReportRepository repository = mock(ReportRepository.class);
+        ImageClient imageClient = mock(ImageClient.class);
+        ExamClient examClient = mock(ExamClient.class);
+        CreateReportRequest request = new CreateReportRequest(12L, 5L, "所见", "意见");
+        when(examClient.examStatus(12L)).thenReturn("IN_PROGRESS");
+
+        ReportService service = new ReportService(repository, imageClient, examClient);
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("完成");
+        verify(repository, never()).createDraft(request);
+    }
+
+    @Test
+    void reopenReturnsRejectedToDraft() {
+        ReportRepository repository = mock(ReportRepository.class);
+        ImageClient imageClient = mock(ImageClient.class);
+        ExamClient examClient = mock(ExamClient.class);
+        when(repository.findById(31L)).thenReturn(Optional.of(new Report(31L, 12L, 5L, "所见", "意见", "REJECTED")));
+        when(repository.updateStatus(31L, "DRAFT")).thenReturn(new Report(31L, 12L, 5L, "所见", "意见", "DRAFT"));
+
+        ReportService service = new ReportService(repository, imageClient, examClient);
+
+        assertThat(service.reopen(31L).status()).isEqualTo("DRAFT");
+        verify(repository).audit(31L, "REOPEN", "diagnosis-doctor", "回到草稿修改");
     }
 }

@@ -126,6 +126,31 @@ public class MybatisImageStudyRepository implements ImageStudyRepository {
     }
 
     @Override
+    public List<ImageFile> findFilesBySeriesId(Long seriesId) {
+        return fileMapper.selectList(new LambdaQueryWrapper<ImageFileEntity>().eq(ImageFileEntity::getSeriesId, seriesId))
+                .stream().map(MybatisImageStudyRepository::toModel).toList();
+    }
+
+    @Override
+    public void deleteFilesByStudyId(Long studyId) {
+        Set<Long> seriesIds = findSeriesByStudyId(studyId).stream().map(MriSeries::id).collect(java.util.stream.Collectors.toSet());
+        if (seriesIds.isEmpty()) {
+            return;
+        }
+        fileMapper.delete(new LambdaQueryWrapper<ImageFileEntity>().in(ImageFileEntity::getSeriesId, seriesIds));
+    }
+
+    @Override
+    public void deleteFilesBySeriesId(Long seriesId) {
+        fileMapper.delete(new LambdaQueryWrapper<ImageFileEntity>().eq(ImageFileEntity::getSeriesId, seriesId));
+    }
+
+    @Override
+    public void deleteSeriesByStudyId(Long studyId) {
+        seriesMapper.delete(new LambdaQueryWrapper<MriSeriesEntity>().eq(MriSeriesEntity::getStudyId, studyId));
+    }
+
+    @Override
     public void deleteFile(Long id) {
         ensureAffected(fileMapper.deleteById(id), "影像文件不存在");
     }

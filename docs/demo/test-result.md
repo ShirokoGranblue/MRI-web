@@ -21,7 +21,7 @@ mvn clean test
 | `mri-report-service` | SUCCESS |
 | `mri-gateway` | SUCCESS |
 
-测试用例合计 16 个，失败 0 个，错误 0 个，跳过 0 个。Maven 编译日志显示 `javac [debug release 21]`。覆盖认证登录/登出、患者缓存、检查申请远程校验、影像 Study 缓存和 viewer manifest、报告发布远程协同、网关 JWT 鉴权和基础角色授权。
+测试用例合计 41 个，失败 0 个，错误 0 个，跳过 0 个。Maven 编译日志显示 `javac [debug release 21]`。覆盖认证登录/登出、患者缓存、检查申请远程校验与取消守卫、检查申请删除（含缺失校验）、取消后返回最新状态、影像 Study 缓存与 viewer manifest、影像 MinIO 上传/删除与级联删除、归档前检查完成校验、归档自动生成 Study Instance UID、诊断报告创建守卫与驳回回到草稿、患者检查历史 Feign、网关 JWT 鉴权和基础角色授权。
 
 控制台摘要：
 
@@ -49,6 +49,5 @@ npm audit --json
 
 执行结果：
 
-- `npm run build`：SUCCESS，Vite 8.0.16 生成 `dist/index.html`、CSS 和 JS 资源。
+- `npm run build`：SUCCESS，Vite 8.0.16 生成 `dist/index.html`、CSS 和 JS 资源。前端采用 react-router 按功能分页（登录页 + 7 个功能页），`react-router-dom` 依赖新增后漏洞数量仍为 0。
 - `npm audit --json`：漏洞数量为 0。
-- Playwright 截图验证：已生成桌面和移动端截图，文件位于 `target-demo-output/mri-frontend-desktop.png` 和 `target-demo-output/mri-frontend-mobile.png`。

@@ -1,10 +1,8 @@
-# 产品使用说明书
+# 使用说明书
 
 ## 系统简介
 
-医院核磁共振图像信息管理系统用于演示 MRI 检查相关信息化流程，覆盖患者建档、MRI 检查申请、检查排程、影像归档、影像预览清单、诊断报告审核发布、影像下载审计、登录认证、服务注册发现、Redis 缓存、API 网关和配置中心动态刷新。
-
-本系统为教学演示版本，不解析真实 DICOM，不对接 PACS、HL7 或 FHIR，不用于真实诊疗环境。
+医院核磁共振图像信息管理系统用于演示 MRI 检查相关信息化流程，覆盖患者建档（含 MRI 禁忌症与检查历史）、MRI 检查申请与排程、影像归档、基于 MinIO 的影像对象存储与上传预览、影像预览清单、诊断报告审核发布（含驳回回到草稿）、影像下载审计、登录认证、服务注册发现、Redis 缓存、API 网关和配置中心动态刷新。界面采用用户化语言按功能分页，从登录页进入，各记录支持删除与编辑，关键状态流转有防越级校验。
 
 ## 用户角色
 
@@ -65,30 +63,32 @@ npm run dev
 http://localhost:5173
 ```
 
-前端界面主要区域：
+前端采用 React + react-router 按功能分页，从登录页进入，界面使用用户化语言（不暴露 Study/Series/UID/Token/Redis/Nacos 等技术术语）。左侧导航包含：工作台、患者档案、检查申请、影像归档、诊断报告、系统设置、操作记录。
 
-- 左侧导航：工作台、患者档案、检查申请、影像归档、报告审核、缓存配置。
-- 顶部状态：显示网关、Redis、Nacos、Feign 相关状态标签。
-- 登录认证：使用默认账号 `admin/admin123` 登录，登录后自动保存 Bearer Token。
-- 患者档案：新增患者并刷新患者分页查询结果。
-- 检查申请：创建 MRI 检查申请、安排检查排程、开始检查、完成检查。
-- 影像归档：归档 Study，新增 Series，登记 Image 文件元数据。
-- 报告审核：新增报告、提交审核、审核通过、发布报告。
-- 缓存配置：读取 viewer manifest，触发 Redis 缓存演示查询，读取 Nacos 动态配置。
-- 操作日志：记录前端通过网关调用接口的成功和失败结果。
+- **登录页**：使用默认账号 `admin/admin123` 登录，登录后进入工作台。
+- **工作台**：数量概览、检查流程示意、待办事项（可点击带筛选跳转）、最近操作记录。
+- **患者档案**：按姓名/编号搜索、新增、编辑、删除（确认弹窗）；点击「详情」查看 MRI 禁忌症（可增删）与检查历史。
+- **检查申请**：按状态筛选、新增（下拉选患者）、取消/开始/完成（按状态自动启用）、编辑、删除（随时可删，连带删除排程）；下方检查排程子区可新增/删除排程。
+- **影像归档**：影像检查列表（按患者关联展示）、保存影像（需检查已完成）、删除（级联删除序列与文件）；选中影像后可添加/删除序列、上传影像文件到 MinIO 对象存储并预览真实缩略图、删除影像、快速预览。
+- **诊断报告**：按状态筛选、新增（下拉选检查/影像）、编辑、删除（随时可删，含已发布）、提交/审核/驳回（带原因）/回到草稿/发布（按状态自动启用）、审核日志时间线。
+- **系统设置**：查看报告水印与影像下载开关，点击「重新读取设置」刷新配置中心配置。
+- **操作记录**：记录全部操作的成功与失败结果，使用用户化语言。
+
 ## 功能使用流程
 
-1. 患者建档：调用 `POST /api/patients` 创建患者。
-2. 禁忌症登记：调用 `POST /api/patients/{patientId}/contraindications` 登记 MRI 禁忌症。
-3. 创建检查申请：调用 `POST /api/exams`，系统会远程调用患者服务确认患者存在。
-4. 安排检查：调用 `POST /api/exams/schedules`。
-5. 开始和完成检查：调用 `POST /api/exams/{id}/start`、`POST /api/exams/{id}/complete`。
-6. 归档 Study：调用 `POST /api/images/studies`，系统会远程调用检查服务确认检查单存在。
-7. 新增 Series 和 Image：调用 `POST /api/images/studies/{studyId}/series`、`POST /api/images/studies/{studyId}/files`。
-8. 查看影像预览清单：调用 `GET /api/images/studies/{studyId}/viewer-manifest`。
-9. 编写报告：调用 `POST /api/reports`。
-10. 审核发布：调用 `POST /api/reports/{id}/submit`、`POST /api/reports/{id}/approve`、`POST /api/reports/{id}/publish`。
-11. 下载影像：调用 `POST /api/images/studies/{studyId}/download`，系统会记录下载审计日志。
+1. 患者建档：`POST /api/patients`；可编辑 `PUT /api/patients/{id}`、删除 `DELETE /api/patients/{id}`。
+2. 禁忌症登记：`POST /api/patients/{patientId}/contraindications`；可删除 `DELETE /api/patients/contraindications/{id}`。
+3. 检查历史：`GET /api/patients/{patientId}/exam-history`（患者服务经 Feign 调检查服务 `GET /api/exams/by-patient/{patientId}`，返回真实检查记录）。
+4. 创建检查申请：`POST /api/exams`（远程校验患者存在）；仅待检查/进行中可取消 `POST /api/exams/{id}/cancel`。
+5. 安排检查：`POST /api/exams/schedules`；可删除 `DELETE /api/exams/schedules/{id}`。
+6. 开始与完成检查：`POST /api/exams/{id}/start`、`POST /api/exams/{id}/complete`（状态流转有守卫，不可越级）。
+7. 归档影像：`POST /api/images/studies`（校验检查已完成后才可归档）。
+8. 添加序列与上传影像：`POST /api/images/studies/{studyId}/series` 新增序列；上传影像到 MinIO 用 multipart `POST /api/images/studies/{studyId}/files`（表单字段 `seriesId` + `file`），数据库保存对象存储地址；读取影像内容 `GET /api/images/files/{id}/content`。
+9. 查看影像预览清单：`GET /api/images/studies/{studyId}/viewer-manifest`；快速预览（缓存演示）`GET /api/images/studies/{studyId}/cache-demo`。
+10. 编写报告：`POST /api/reports`（校验检查已完成且对应影像已归档）。
+11. 审核发布：`POST /api/reports/{id}/submit` 提交、`/approve` 审核通过、`/reject?reason=` 驳回、`/reopen` 回到草稿修改、`/publish` 发布（发布时远程回写检查状态为「已出报告」）。
+12. 删除记录：患者 `DELETE /api/patients/{id}`、检查申请 `DELETE /api/exams/{id}`（连带删除排程）、排程 `DELETE /api/exams/schedules/{id}`、影像检查 `DELETE /api/images/studies/{id}`（级联删序列与文件及 MinIO 对象）、序列 `DELETE /api/images/series/{id}`（级联删文件及对象）、影像文件 `DELETE /api/images/files/{id}`（删 MinIO 对象）、报告 `DELETE /api/reports/{id}`。
+13. 下载影像：`POST /api/images/studies/{studyId}/download`，系统记录下载审计日志，`GET /api/images/studies/{studyId}/download-logs` 查询下载记录。
 
 ## 接口文档使用
 
@@ -139,6 +139,8 @@ Redis 未连接：确认 `mri-redis` 容器运行，端口为 `6379`。
 
 配置修改未刷新：等待 3 至 5 秒后重新调用接口，确认 Nacos dataId 为 `mri-image-service.yaml`。
 
+影像上传失败/预览无图：执行 `docker compose ps` 确认 `mri-minio` 容器运行，端口为 `9000`（API）与 `9001`（控制台）。MinIO 控制台 `http://localhost:9001`（账号 `mri` / `mri123456`）可查看 `mri-images` 桶内已上传对象。首次启动时影像服务会自动创建 `mri-images` 桶。
+
 ## 停止系统
 
 关闭各 Spring Boot 服务进程后执行：
@@ -151,4 +153,10 @@ docker compose down
 
 ```powershell
 docker compose down -v
+```
+
+如仅清空业务样例数据但保留登录账号（不重建数据卷）：
+
+```text
+docker exec -i mri-mysql mysql -uroot -proot123456 mri_cloud < scripts/db/clear-business-data.sql
 ```

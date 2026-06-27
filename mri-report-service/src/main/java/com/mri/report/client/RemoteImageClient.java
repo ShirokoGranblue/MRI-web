@@ -18,4 +18,14 @@ public class RemoteImageClient implements ImageClient {
         Object description = data.get("description");
         return description == null ? "MRI Study" : String.valueOf(description);
     }
+
+    @Override
+    public boolean studyExists(Long studyId) {
+        try {
+            api.study(studyId);
+            return true;
+        } catch (RuntimeException ex) {
+            return false;
+        }
+    }
 }

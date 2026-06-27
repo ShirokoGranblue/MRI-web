@@ -2,7 +2,7 @@
 
 ## 1. 启动中间件
 
-执行 `scripts/demo/01-start-infra.ps1`，启动 MySQL、Redis、Nacos。演示 Nacos 页面：`http://localhost:8848/nacos`。
+执行 `scripts/demo/01-start-infra.ps1`，启动 MySQL、Redis、Nacos、MinIO。演示 Nacos 页面：`http://localhost:8848/nacos`；MinIO 控制台：`http://localhost:9001`（账号 `mri` / `mri123456`），可查看影像对象存储桶 `mri-images`。
 
 ## 2. 启动微服务
 
@@ -66,17 +66,12 @@ npm install
 npm run dev
 ```
 
-浏览器访问 `http://localhost:5173`。演示顺序建议为：
+浏览器访问 `http://localhost:5173`。界面按功能分页、使用用户化语言。演示顺序建议为：
 
-1. 使用 `admin/admin123` 登录，观察 Bearer Token 状态。
-2. 在“患者档案”新增患者并刷新列表。
-3. 在“检查申请”创建 MRI 检查申请、安排排程、执行开始和完成检查。
-4. 在“影像归档”归档 Study、新增 Series、登记 Image 文件元数据。
-5. 在“报告审核”新增报告、提交审核、审核通过、发布报告。
-6. 在“缓存配置”读取 viewer manifest、执行 Redis 查询、读取 Nacos 动态配置。
-7. 查看右侧操作日志，确认请求均通过 `/api/**` 网关访问。
-
-本地视觉验证截图保存于：
-
-- `target-demo-output/mri-frontend-desktop.png`
-- `target-demo-output/mri-frontend-mobile.png`
+1. 在登录页使用 `admin/admin123` 登录，进入工作台查看数量概览、检查流程与待办。
+2. 在「患者档案」搜索/新增患者；点击「详情」登记 MRI 禁忌症并查看检查历史；练习编辑与删除（确认弹窗）。
+3. 在「检查申请」下拉选患者创建申请；排程子区新增排程；执行开始、完成检查；尝试取消（仅待检查/进行中可用，验证状态守卫）；练习删除（随时可删，连带排程）。
+4. 在「影像归档」选择已完成的检查保存影像；选中影像后添加序列、上传影像文件（存入 MinIO）、查看真实缩略图预览、删除影像；点击「快速预览」演示缓存加载。
+5. 在「诊断报告」下拉选检查/影像新增报告；提交审核、审核通过、发布；或驳回后「回到草稿」修改再提交；查看审核日志时间线；练习删除（随时可删，含已发布报告）。
+6. 在「系统设置」查看报告水印与下载开关，点击「重新读取设置」刷新。
+7. 在「操作记录」查看全部操作的成功与失败记录。

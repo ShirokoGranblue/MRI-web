@@ -116,7 +116,7 @@ public class MybatisReportRepository implements ReportRepository {
     }
 
     private static Report toModel(ReportEntity entity) {
-        return new Report(entity.getId(), entity.getExamOrderId(), entity.getStudyId(), entity.getFindings(), entity.getStatus());
+        return new Report(entity.getId(), entity.getExamOrderId(), entity.getStudyId(), entity.getFindings(), entity.getImpression(), entity.getStatus());
     }
 
     private static ReportAuditLog toModel(ReportAuditLogEntity entity) {

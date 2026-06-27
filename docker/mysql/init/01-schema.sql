@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 CREATE DATABASE IF NOT EXISTS mri_cloud DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE mri_cloud;
 
@@ -175,38 +176,5 @@ INSERT INTO sys_user_role (id, user_id, role_code) VALUES
   (3, 1, 'AUDITOR')
 ON DUPLICATE KEY UPDATE role_code = VALUES(role_code);
 
-INSERT INTO patient (id, patient_no, name, gender, birth_date, phone) VALUES
-  (1, 'P20260618001', '张三', '男', '1988-05-01', '13800000000')
-ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone);
-
-INSERT INTO mri_contraindication (id, patient_id, type, description, severity) VALUES
-  (1, 1, '金属植入物', '无心脏起搏器，左膝钛合金内固定需技师确认', 'LOW')
-ON DUPLICATE KEY UPDATE description = VALUES(description);
-
-INSERT INTO mri_exam_order (id, patient_id, exam_item, clinical_diagnosis, priority, status) VALUES
-  (1, 1, '头颅MRI平扫', '眩晕待查', '普通', 'REQUESTED')
-ON DUPLICATE KEY UPDATE status = VALUES(status);
-
-INSERT INTO mri_schedule (id, exam_order_id, scanner_room, scheduled_at, technologist) VALUES
-  (1, 1, 'MRI-1', '2026-06-18 15:30:00', '李技师')
-ON DUPLICATE KEY UPDATE scanner_room = VALUES(scanner_room);
-
-INSERT INTO mri_study (id, exam_order_id, study_instance_uid, description, status) VALUES
-  (1, 1, '1.2.156.112605.20260618.0001', '头颅MRI平扫', 'ARCHIVED')
-ON DUPLICATE KEY UPDATE description = VALUES(description);
-
-INSERT INTO mri_series (id, study_id, series_name, body_position) VALUES
-  (1, 1, 'T1_AXIAL', 'AXIAL'),
-  (2, 1, 'T2_SAGITTAL', 'SAGITTAL')
-ON DUPLICATE KEY UPDATE series_name = VALUES(series_name);
-
-INSERT INTO mri_image_file (id, series_id, file_name, storage_path, checksum) VALUES
-  (1, 1, 't1-001.dcm', 'storage/mri-images/t1-001.dcm', 'demo-checksum-t1'),
-  (2, 2, 't2-001.dcm', 'storage/mri-images/t2-001.dcm', 'demo-checksum-t2')
-ON DUPLICATE KEY UPDATE file_name = VALUES(file_name);
-
-INSERT INTO mri_report (id, exam_order_id, study_id, findings, impression, status) VALUES
-  (1, 1, 1, '双侧基底节区未见明确异常信号。', '头颅MRI未见明确急性异常。', 'DRAFT')
-ON DUPLICATE KEY UPDATE status = VALUES(status);
-
-
+-- 业务样例数据已移除：系统启动后业务表为空，登录后由用户自行登记患者、检查、影像与报告。
+-- 如需清空已有库中的历史样例数据，执行 scripts/db/clear-business-data.sql（保留登录账号）。

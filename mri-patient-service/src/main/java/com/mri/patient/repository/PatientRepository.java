@@ -3,7 +3,6 @@ package com.mri.patient.repository;
 import com.mri.common.api.PageResult;
 import com.mri.patient.model.Contraindication;
 import com.mri.patient.model.Patient;
-import com.mri.patient.model.PatientExamHistory;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +27,4 @@ public interface PatientRepository {
     List<Contraindication> listContraindications(Long patientId);
 
     void deleteContraindication(Long id);
-
-    List<PatientExamHistory> examHistory(Long patientId);
 }

@@ -53,6 +53,14 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
     }
 
     @Override
+    public List<ExamOrder> listByPatient(Long patientId) {
+        return examOrderMapper.selectList(new LambdaQueryWrapper<ExamOrderEntity>()
+                        .eq(ExamOrderEntity::getPatientId, patientId)
+                        .orderByDesc(ExamOrderEntity::getId))
+                .stream().map(MybatisExamOrderRepository::toModel).toList();
+    }
+
+    @Override
     public ExamOrder update(Long id, CreateExamOrderRequest request) {
         ExamOrderEntity entity = examOrderMapper.selectById(id);
         if (entity == null) {
@@ -67,8 +75,14 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
     }
 
     @Override
-    public void cancel(Long id) {
-        updateStatus(id, "CANCELLED");
+    public ExamOrder cancel(Long id) {
+        return updateStatus(id, "CANCELLED");
+    }
+
+    @Override
+    public void delete(Long id) {
+        scheduleMapper.delete(new LambdaQueryWrapper<ScheduleEntity>().eq(ScheduleEntity::getExamOrderId, id));
+        ensureAffected(examOrderMapper.deleteById(id), "检查申请不存在");
     }
 
     @Override
@@ -112,7 +126,8 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
     }
 
     private static ExamOrder toModel(ExamOrderEntity entity) {
-        return new ExamOrder(entity.getId(), entity.getPatientId(), entity.getExamItem(), entity.getStatus());
+        return new ExamOrder(entity.getId(), entity.getPatientId(), entity.getExamItem(),
+                entity.getClinicalDiagnosis(), entity.getPriority(), entity.getStatus(), entity.getCreatedAt());
     }
 
     private static MriSchedule toModel(ScheduleEntity entity) {

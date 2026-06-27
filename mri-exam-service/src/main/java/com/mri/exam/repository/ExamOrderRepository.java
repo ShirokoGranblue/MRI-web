@@ -15,9 +15,13 @@ public interface ExamOrderRepository {
 
     PageResult<ExamOrder> page(long page, long size, String status);
 
+    List<ExamOrder> listByPatient(Long patientId);
+
     ExamOrder update(Long id, CreateExamOrderRequest request);
 
-    void cancel(Long id);
+    ExamOrder cancel(Long id);
+
+    void delete(Long id);
 
     ExamOrder updateStatus(Long id, String status);
 

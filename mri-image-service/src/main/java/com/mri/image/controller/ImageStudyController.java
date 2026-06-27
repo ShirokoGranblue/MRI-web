@@ -11,8 +11,11 @@ import com.mri.image.model.MriStudy;
 import com.mri.image.repository.ImageStudyRepository;
 import com.mri.image.service.ImageStudyService;
 import com.mri.image.service.ViewerManifest;
+import com.mri.image.storage.MinioImageStorage.LoadedObject;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +24,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -106,10 +111,27 @@ public class ImageStudyController {
     }
 
     @Operation(summary = "影像文件上传登记")
-    @PostMapping("/studies/{studyId}/files")
+    @PostMapping(value = "/studies/{studyId}/files", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResult<ImageFile> uploadFile(@PathVariable Long studyId, @RequestBody ImageFile file) {
         String storagePath = file.storagePath() == null ? "storage/mri-images/" + file.fileName() : file.storagePath();
         return ApiResult.ok(service.createFile(new ImageFile(null, file.seriesId(), file.fileName(), storagePath, file.checksum()), studyId));
+    }
+
+    @Operation(summary = "上传影像文件到对象存储")
+    @PostMapping(value = "/studies/{studyId}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResult<ImageFile> uploadToStorage(@PathVariable Long studyId,
+                                                @RequestParam Long seriesId,
+                                                @RequestPart MultipartFile file) {
+        return ApiResult.ok(service.uploadFile(seriesId, file));
+    }
+
+    @Operation(summary = "影像文件内容")
+    @GetMapping("/files/{id}/content")
+    public ResponseEntity<byte[]> fileContent(@PathVariable Long id) {
+        LoadedObject obj = service.streamFile(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(obj.contentType()))
+                .body(obj.content());
     }
 
     @Operation(summary = "影像文件详情")

@@ -37,6 +37,14 @@ public interface ImageStudyRepository {
 
     List<ImageFile> findFilesByStudyId(Long studyId);
 
+    List<ImageFile> findFilesBySeriesId(Long seriesId);
+
+    void deleteFilesByStudyId(Long studyId);
+
+    void deleteFilesBySeriesId(Long seriesId);
+
+    void deleteSeriesByStudyId(Long studyId);
+
     void deleteFile(Long id);
 
     DownloadLog createDownloadLog(DownloadLog log);

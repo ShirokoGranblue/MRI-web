@@ -2,21 +2,18 @@
 
 ## 系统简介
 
-医院核磁共振图像信息管理系统用于演示 MRI 检查相关信息化流程，覆盖患者建档（含 MRI 禁忌症与检查历史）、MRI 检查申请与排程、影像归档、基于 MinIO 的影像对象存储与上传预览、影像预览清单、诊断报告审核发布（含驳回回到草稿）、影像下载审计、登录认证、服务注册发现、Redis 缓存、API 网关和配置中心动态刷新。界面采用用户化语言按功能分页，从登录页进入，各记录支持删除与编辑，关键状态流转有防越级校验。
+医院核磁共振图像信息管理系统覆盖患者自助建档、MRI 禁忌症、检查申请与排程、影像归档、MinIO 影像上传预览、诊断报告审核发布、患者进度查询、登录认证、服务注册发现、Redis 缓存、API 网关和配置中心动态刷新。关键状态流转具有防越级校验，医生和患者的数据权限由网关及后端本人接口共同控制。
 
 ## 用户角色
 
-- 管理员：维护用户、角色、系统演示配置。
-- 登记人员：维护患者档案、登记 MRI 禁忌症、创建检查申请。
-- 技师：安排检查排程、开始检查、完成检查、归档 MRI Study/Series/Image。
-- 诊断医生：查看影像预览清单、编写诊断报告、提交审核。
-- 审核医生：审核报告、驳回报告、发布报告。
+- 医生（admin）：只读查看患者档案，创建和处理检查申请、排程、影像和诊断报告，并查看操作记录。
+- 患者（PATIENT）：通过登录页注册，自行维护本人档案和 MRI 禁忌症，只读查看本人检查、影像和报告进度；报告发布后查看正文和相关影像。
 
 ## 登录说明
 
 默认账号：
 
-- 用户名：`admin`
+- 医生用户名：`admin`
 - 密码：`admin123`
 
 登录接口：
@@ -63,11 +60,13 @@ npm run dev
 http://localhost:5173
 ```
 
-前端采用 React + react-router 按功能分页，从登录页进入，界面使用用户化语言（不暴露 Study/Series/UID/Token/Redis/Nacos 等技术术语）。左侧导航包含：工作台、患者档案、检查申请、影像归档、诊断报告、系统设置、操作记录。
+前端采用 React + react-router 按角色分页。医生导航包含工作台、患者档案、检查申请、影像归档、诊断报告、系统设置和操作记录；患者导航只包含工作台、我的资料、我的检查、我的影像和我的报告。
 
-- **登录页**：使用默认账号 `admin/admin123` 登录，登录后进入工作台。
+- **登录页**：医生登录；患者通过“患者注册”创建账号，用户名默认使用姓名并允许自定义。
 - **工作台**：数量概览、检查流程示意、待办事项（可点击带筛选跳转）、最近操作记录。
-- **患者档案**：按姓名/编号搜索、新增、编辑、删除（确认弹窗）；点击「详情」查看 MRI 禁忌症（可增删）与检查历史。
+- **医生患者档案**：按姓名/编号搜索并只读查看患者资料、MRI 禁忌症和检查历史。
+- **患者本人资料**：首次登录时提交基本资料并选择有/无禁忌症，之后仅患者本人可维护。
+- **患者进度页面**：每 5 秒更新本人检查、影像和报告状态；报告发布前隐藏正文并锁定影像，发布后开放。
 - **检查申请**：按状态筛选、新增（下拉选患者）、取消/开始/完成（按状态自动启用）、编辑、删除（随时可删，连带删除排程）；下方检查排程子区可新增/删除排程。
 - **影像归档**：影像检查列表（按患者关联展示）、保存影像（需检查已完成）、删除（级联删除序列与文件）；选中影像后可添加/删除序列、上传影像文件到 MinIO 对象存储并预览真实缩略图、删除影像、快速预览。
 - **诊断报告**：按状态筛选、新增（下拉选检查/影像）、编辑、删除（随时可删，含已发布）、提交/审核/驳回（带原因）/回到草稿/发布（按状态自动启用）、审核日志时间线。
@@ -76,8 +75,8 @@ http://localhost:5173
 
 ## 功能使用流程
 
-1. 患者建档：`POST /api/patients`；可编辑 `PUT /api/patients/{id}`、删除 `DELETE /api/patients/{id}`。
-2. 禁忌症登记：`POST /api/patients/{patientId}/contraindications`；可删除 `DELETE /api/patients/contraindications/{id}`。
+1. 患者注册：`POST /api/auth/register`，服务端固定分配 `PATIENT` 角色。
+2. 患者本人建档：首次使用 `POST /api/patients/me`，之后使用 `PUT /api/patients/me`，基本资料与禁忌症在同一事务中保存。
 3. 检查历史：`GET /api/patients/{patientId}/exam-history`（患者服务经 Feign 调检查服务 `GET /api/exams/by-patient/{patientId}`，返回真实检查记录）。
 4. 创建检查申请：`POST /api/exams`（远程校验患者存在）；仅待检查/进行中可取消 `POST /api/exams/{id}/cancel`。
 5. 安排检查：`POST /api/exams/schedules`；可删除 `DELETE /api/exams/schedules/{id}`。
@@ -87,7 +86,7 @@ http://localhost:5173
 9. 查看影像预览清单：`GET /api/images/studies/{studyId}/viewer-manifest`；快速预览（缓存演示）`GET /api/images/studies/{studyId}/cache-demo`。
 10. 编写报告：`POST /api/reports`（校验检查已完成且对应影像已归档）。
 11. 审核发布：`POST /api/reports/{id}/submit` 提交、`/approve` 审核通过、`/reject?reason=` 驳回、`/reopen` 回到草稿修改、`/publish` 发布（发布时远程回写检查状态为「已出报告」）。
-12. 删除记录：患者 `DELETE /api/patients/{id}`、检查申请 `DELETE /api/exams/{id}`（连带删除排程）、排程 `DELETE /api/exams/schedules/{id}`、影像检查 `DELETE /api/images/studies/{id}`（级联删序列与文件及 MinIO 对象）、序列 `DELETE /api/images/series/{id}`（级联删文件及对象）、影像文件 `DELETE /api/images/files/{id}`（删 MinIO 对象）、报告 `DELETE /api/reports/{id}`。
+12. 删除业务记录：医生可按原流程删除检查、排程、影像和报告；医生不能修改或删除患者本人资料。
 13. 下载影像：`POST /api/images/studies/{studyId}/download`，系统记录下载审计日志，`GET /api/images/studies/{studyId}/download-logs` 查询下载记录。
 
 ## 接口文档使用

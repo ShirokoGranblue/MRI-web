@@ -68,6 +68,10 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("当前用户不存在或已停用"));
     }
 
+    public RegisterResponse currentUserFromToken(String token) {
+        return currentUser(jwtTokenProvider.parse(token).subject());
+    }
+
     public void logout(String token) {
         Duration ttl = jwtTokenProvider.remainingTtl(token);
         blacklist.blacklist(token, ttl);

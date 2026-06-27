@@ -27,3 +27,8 @@ export function visibleNavigation(roles) {
 export function nextRegistrationUsername(displayName, usernameEdited, currentUsername) {
   return usernameEdited ? currentUsername : displayName;
 }
+
+export function patientLandingPath(profile) {
+  if (!profile) return null;
+  return profile.profileComplete ? '/' : '/patients';
+}

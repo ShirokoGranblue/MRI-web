@@ -54,8 +54,14 @@ public class AuthController {
 
     @Operation(summary = "当前登录用户")
     @GetMapping("/me")
-    public ApiResult<RegisterResponse> me(@RequestHeader("X-Authenticated-User") String username) {
-        return ApiResult.ok(authService.currentUser(username));
+    public ApiResult<RegisterResponse> me(
+            @RequestHeader(value = "X-Authenticated-User", required = false) String username,
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        if (username != null && !username.isBlank()) {
+            return ApiResult.ok(authService.currentUser(username));
+        }
+        return ApiResult.ok(authService.currentUserFromToken(stripBearer(authorization)));
     }
 
     private static String stripBearer(String authorization) {

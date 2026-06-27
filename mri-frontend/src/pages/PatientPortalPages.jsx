@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { ClipboardList, FileText, Image, Plus, RefreshCw, Save, Trash2, UserRound } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { statusLabel, useApp } from '../lib/app-context.jsx';
+import { patientLandingPath } from '../lib/role-utils.js';
 import { Button, DataTable, EmptyState, PageHeader, SectionHeader, SelectField, StatusTag, TextField } from '../components/ui.jsx';
 
 const emptyContraindication = () => ({ type: '金属植入物', description: '', severity: 'HIGH' });
 
 export function PatientDashboardPage() {
   const { patientProfile, exams, studies, reports } = useApp();
+  const landingPath = patientLandingPath(patientProfile);
+  if (landingPath === '/patients') {
+    return <Navigate to="/patients" replace />;
+  }
   return (
     <div className="page-stack">
       <PageHeader title="我的进度" subtitle="实时查看本人检查、影像与诊断报告处理状态" />
@@ -155,13 +161,18 @@ export function PatientExamsPage() {
 }
 
 export function PatientImagesPage() {
-  const { patientProfile, studies, refreshPatientData, busyKey } = useApp();
+  const { patientProfile, studies, refreshPatientData, runAction, busyKey } = useApp();
   const [manifest, setManifest] = useState(null);
   if (!patientProfile?.profileComplete) return <ProfileRequired />;
   async function openStudy(study) {
     if (!study.reportPublished) return;
-    const data = await api.myViewerManifest(study.id);
-    setManifest(data);
+    await runAction(
+      `open-my-study-${study.id}`,
+      '打开本人影像',
+      () => api.myViewerManifest(study.id),
+      setManifest,
+      { log: false },
+    );
   }
   return (
     <div className="page-stack">
@@ -215,18 +226,23 @@ function PatientManifest({ manifest, onClose }) {
 }
 
 function PatientImageFile({ file }) {
+  const { notify } = useApp();
   const [url, setUrl] = useState('');
   useEffect(() => {
     let active = true;
-    api.myFileContent(file.id).then((blob) => {
-      if (!active) return;
-      setUrl(URL.createObjectURL(blob));
-    });
+    api.myFileContent(file.id)
+      .then((blob) => {
+        if (!active) return;
+        setUrl(URL.createObjectURL(blob));
+      })
+      .catch((error) => {
+        if (active) notify('error', '加载影像', error.message || '影像加载失败');
+      });
     return () => {
       active = false;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [file.id]);
+  }, [file.id, notify]);
   return <div className="scan-item">{url ? <img src={url} alt={file.fileName} /> : <span>影像加载中</span>}<strong>{file.fileName}</strong></div>;
 }
 

@@ -148,14 +148,38 @@ Redis 未连接：确认 `mri-redis` 容器运行，端口为 `6379`。
 docker compose down
 ```
 
-如需清空数据库、Redis、Nacos 数据：
+如需完全删除本地基础设施数据卷并重新初始化，可执行下列命令。该操作会同时删除账号和系统配置，不用于最终交付清理：
 
 ```powershell
 docker compose down -v
 ```
 
-如仅清空业务样例数据但保留登录账号（不重建数据卷）：
+最终交付前清空运行验证数据，同时保留 admin、系统角色定义、Nacos 配置和空 MinIO bucket：
 
-```text
-docker exec -i mri-mysql mysql -uroot -proot123456 mri_cloud < scripts/db/clear-business-data.sql
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/db/clear-runtime-data.ps1
 ```
+
+脚本会依次清空业务表、删除所有 PATIENT 账号、清空项目 Redis、删除 `mri-images` bucket 内对象并保留 bucket，以及清理 `storage/mri-images` 运行文件。Docker 引擎不可用或任一步失败时脚本返回非零，不会误报成功。
+
+清理后必须独立确认：
+
+```powershell
+docker exec mri-mysql mysql -uroot -proot123456 -D mri_cloud -e "
+SELECT COUNT(*) FROM patient;
+SELECT COUNT(*) FROM mri_contraindication;
+SELECT COUNT(*) FROM mri_exam_order;
+SELECT COUNT(*) FROM mri_schedule;
+SELECT COUNT(*) FROM mri_study;
+SELECT COUNT(*) FROM mri_series;
+SELECT COUNT(*) FROM mri_image_file;
+SELECT COUNT(*) FROM mri_download_log;
+SELECT COUNT(*) FROM mri_report;
+SELECT COUNT(*) FROM mri_report_audit_log;
+SELECT username, display_name, enabled FROM sys_user WHERE username='admin';
+SELECT role_code, role_name FROM sys_role ORDER BY id;"
+
+docker exec mri-redis redis-cli DBSIZE
+```
+
+MinIO 使用 `mc stat` 和 `mc du` 验证 `mri-images` bucket 存在且为 `0 objects`。最后只执行 admin 登录、`/api/auth/me` 和空列表查询，不再注册患者或创建业务记录。

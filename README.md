@@ -59,9 +59,23 @@ mvn -pl mri-gateway spring-boot:run
 
 患者账号通过登录页的“患者注册”功能创建。注册后患者首次登录自行提交本人档案和有/无 MRI 禁忌症；医生只能查看患者档案，检查、影像和报告业务仍由医生处理。
 
+角色边界：
+
+- `admin` 在产品界面中显示为医生，可只读查看患者资料和禁忌症，并处理检查申请、排程、检查执行、影像归档、报告审核与发布。
+- `PATIENT` 只能维护与当前登录用户名绑定的本人档案和禁忌症，并只读查看本人检查、影像和报告进度。
+- 报告发布前患者只能看到处理状态；发布后才返回报告正文并开放关联影像预览。
+- 患者门户每 5 秒静默刷新，页面进入后台时暂停、恢复时立即刷新。
+- 401 会清理失效会话；403 只提示无权限，不退出当前账号。
+
 网关入口：`http://localhost:8080/api/**`
 
-系统启动后业务表为空。需要清空运行验证数据、患者账号、Redis 缓存和 MinIO 对象时，执行 `scripts/db/clear-runtime-data.ps1`；脚本保留 admin 医生账号和系统角色定义。
+系统启动后业务表为空。需要清空运行验证数据、患者账号、Redis 缓存和 MinIO 对象时，执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/db/clear-runtime-data.ps1
+```
+
+脚本保留 admin 医生账号、系统角色定义和空的 `mri-images` bucket。脚本会预检 Docker 引擎，并在数据库、Redis 或 MinIO 任一步失败时以非零状态终止，不能仅凭最后一行输出判断清理成功。交付前还应按照 `docs/product-manual.md` 的清理验证章节确认十张业务表、PATIENT 账号、Redis key 和 MinIO 对象数量均为 0。
 
 ## 前端界面
 
@@ -107,9 +121,14 @@ npm run dev
 
 ```powershell
 mvn clean test
+Set-Location mri-frontend
+npm test
+npm run build
 ```
 
-## 演示
+测试覆盖患者注册与角色、本人档案和禁忌症事务、网关 401/403 权限、本人检查/影像/报告查询、报告发布门禁、MinIO 上传与存储自恢复，以及前端会话、错误用户化、患者导航和首次建档跳转。最新执行证据见 `docs/demo/test-result.md`。
+
+## 运行验证脚本
 
 按顺序执行 `scripts/demo/` 中的脚本：
 

@@ -12,6 +12,7 @@ import SettingsPage from './pages/SettingsPage.jsx';
 import {
   PatientDashboardPage,
   PatientExamsPage,
+  PatientExamRequestPage,
   PatientImagesPage,
   PatientProfilePage,
   PatientReportsPage,
@@ -33,6 +34,7 @@ export default function App() {
           >
             <Route path="/" element={<RolePage doctor={DashboardPage} patient={PatientDashboardPage} />} />
             <Route path="/patients" element={<RolePage doctor={PatientsPage} patient={PatientProfilePage} />} />
+            <Route path="/exams/request" element={<PatientOnly><PatientExamRequestPage /></PatientOnly>} />
             <Route path="/exams" element={<RolePage doctor={ExamsPage} patient={PatientExamsPage} />} />
             <Route path="/images" element={<RolePage doctor={ImagesPage} patient={PatientImagesPage} />} />
             <Route path="/reports" element={<RolePage doctor={ReportsPage} patient={PatientReportsPage} />} />
@@ -54,4 +56,9 @@ function RolePage({ doctor: DoctorPage, patient: PatientPage }) {
 function DoctorOnly({ children }) {
   const { isPatient } = useApp();
   return isPatient ? <Navigate to="/" replace /> : children;
+}
+
+function PatientOnly({ children }) {
+  const { isPatient } = useApp();
+  return isPatient ? children : <Navigate to="/" replace />;
 }

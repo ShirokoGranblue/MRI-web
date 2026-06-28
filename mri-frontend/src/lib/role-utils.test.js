@@ -6,7 +6,7 @@ test('患者角色识别和导航不包含设置与操作记录', () => {
   assert.equal(isPatientRole(['PATIENT']), true);
   assert.deepEqual(
     visibleNavigation(['PATIENT']).map((item) => item.to),
-    ['/', '/patients', '/exams', '/images', '/reports'],
+    ['/', '/patients', '/exams/request', '/exams', '/images', '/reports'],
   );
 });
 

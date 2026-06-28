@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CalendarDays, ClipboardList, Pencil, Play, Plus, RefreshCw, Send, Trash2, CheckCircle2, Ban } from 'lucide-react';
+import { CalendarDays, ClipboardList, Pencil, Play, RefreshCw, Send, Trash2, CheckCircle2, Ban } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { statusLabel, statusTone, useApp } from '../lib/app-context.jsx';
 import { Button, DataTable, PageHeader, SectionHeader, SelectField, StatusTag, TextField, useConfirm } from '../components/ui.jsx';
@@ -122,16 +122,18 @@ export default function ExamsPage() {
         />
       </section>
 
-      <section className="panel">
-        <SectionHeader icon={editingId ? Pencil : Plus} title={editingId ? '编辑检查申请' : '新增检查申请'} actions={editingId ? <Button variant="ghost" onClick={resetForm}>取消</Button> : null} />
-        <form className="form-grid" onSubmit={submit}>
-          <SelectField label="患者" name="patientId" value={form.patientId} onChange={update} options={patientOptions} placeholder="选择患者" />
-          <TextField label="检查项目" name="examItem" value={form.examItem} onChange={update} placeholder="如：头颅MRI平扫" />
-          <TextField label="临床诊断" name="clinicalDiagnosis" value={form.clinicalDiagnosis} onChange={update} placeholder="如：头痛待查" />
-          <SelectField label="优先级" name="priority" value={form.priority} onChange={update} options={['普通', '加急']} />
-          <div className="form-submit"><Button icon={Send} busy={busyKey === 'createExam' || busyKey === 'saveExam'}>{editingId ? '保存' : '创建申请'}</Button></div>
-        </form>
-      </section>
+      {editingId ? (
+        <section className="panel">
+          <SectionHeader icon={Pencil} title="编辑检查申请" actions={<Button variant="ghost" onClick={resetForm}>取消</Button>} />
+          <form className="form-grid" onSubmit={submit}>
+            <SelectField label="患者" name="patientId" value={form.patientId} onChange={update} options={patientOptions} placeholder="选择患者" />
+            <TextField label="检查项目" name="examItem" value={form.examItem} onChange={update} placeholder="如：头颅MRI平扫" />
+            <TextField label="临床诊断" name="clinicalDiagnosis" value={form.clinicalDiagnosis} onChange={update} placeholder="如：头痛待查" />
+            <SelectField label="优先级" name="priority" value={form.priority} onChange={update} options={['普通', '加急']} />
+            <div className="form-submit"><Button icon={Send} busy={busyKey === 'saveExam'}>保存</Button></div>
+          </form>
+        </section>
+      ) : null}
 
       <SchedulesSection />
       {dialog}

@@ -178,8 +178,8 @@ export default function ImagesPage() {
 
           <form className="form-grid compact" onSubmit={addSeries}>
             <TextField label="序列名称" name="seriesName" value={seriesForm.seriesName} onChange={updateSeries} placeholder="如：T1_AX" />
-            <TextField label="体位" name="bodyPosition" value={seriesForm.bodyPosition} onChange={updateSeries} />
-            <div className="form-submit"><Button icon={Plus} variant="secondary" busy={busyKey === 'createSeries'}>添加序列</Button></div>
+            <TextField label="体位" name="bodyPosition" value={seriesForm.bodyPosition} onChange={updateSeries} placeholder="如：头部仰卧" />
+            <div className="form-submit"><Button icon={Plus} variant="secondary" disabled={!seriesForm.seriesName.trim() || !seriesForm.bodyPosition.trim()} busy={busyKey === 'createSeries'}>添加序列</Button></div>
           </form>
 
           <div className="series-list">
@@ -199,7 +199,7 @@ export default function ImagesPage() {
           <div className="upload-zone">
             <SelectField label="上传到序列" name="uploadSeriesId" value={uploadSeriesId} onChange={(e) => setUploadSeriesId(e.target.value)} options={seriesOptions} placeholder="选择序列" />
             <label className="file-picker">
-              <input type="file" accept="image/*" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+              <input type="file" accept="image/*" multiple onChange={(e) => { setFiles(Array.from(e.target.files || [])); e.target.value = ''; }} />
               <span>{files.length ? `已选择 ${files.length} 个文件` : '选择影像文件（可多选）'}</span>
             </label>
             <Button icon={UploadCloud} onClick={upload} disabled={!files.length || !uploadSeriesId} busy={busyKey?.startsWith('upload-')}>上传影像</Button>

@@ -916,9 +916,15 @@ tr:last-child td {
   background: #f3f6f8;
 }
 
+.contra-section {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #edf2f5;
+}
+
 .contra-editor-row {
   display: grid;
-  grid-template-columns: 1fr 1.4fr 0.8fr auto;
+  grid-template-columns: 2fr 2fr 1fr auto;
   align-items: end;
   gap: 10px;
 }

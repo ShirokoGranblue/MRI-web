@@ -76,6 +76,10 @@ public class GatewayTokenValidator {
         if (path.equals("/api/patients/me")) {
             return method == HttpMethod.GET || method == HttpMethod.POST || method == HttpMethod.PUT;
         }
+        // 患者可提交本人检查申请
+        if (path.equals("/api/exams") && method == HttpMethod.POST) {
+            return true;
+        }
         return method == HttpMethod.GET && (
                 path.equals("/api/exams/mine")
                         || path.startsWith("/api/images/mine/")

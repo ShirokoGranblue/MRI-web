@@ -1,29 +1,81 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { ClipboardList, FileText, Image, Plus, RefreshCw, Save, Trash2, UserRound } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Activity, ArrowRight, ClipboardList, FileText, Image, Plus, RefreshCw, Save, Send, Trash2, UserRound } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { statusLabel, useApp } from '../lib/app-context.jsx';
 import { patientLandingPath } from '../lib/role-utils.js';
-import { Button, DataTable, EmptyState, PageHeader, SectionHeader, SelectField, StatusTag, TextField } from '../components/ui.jsx';
+import { Button, DataTable, EmptyState, Metric, PageHeader, SectionHeader, SelectField, StatusTag, TextField } from '../components/ui.jsx';
 
 const emptyContraindication = () => ({ type: '金属植入物', description: '', severity: 'HIGH' });
 
+const patientFlow = ['提交申请', '待审核', '排程检查', '检查执行', '报告发布'];
+
 export function PatientDashboardPage() {
   const { patientProfile, exams, studies, reports } = useApp();
+  const navigate = useNavigate();
   const landingPath = patientLandingPath(patientProfile);
   if (landingPath === '/patients') {
     return <Navigate to="/patients" replace />;
   }
+
+  const pendingExams = exams.filter((e) => e.status === 'REQUESTED').length;
+  const inProgressExams = exams.filter((e) => e.status === 'IN_PROGRESS').length;
+  const publishedReports = reports.filter((r) => r.status === 'PUBLISHED').length;
+
   return (
     <div className="page-stack">
-      <PageHeader title="我的进度" subtitle="实时查看本人检查、影像与诊断报告处理状态" />
+      <PageHeader
+        title="我的工作台"
+        subtitle="查看本人检查、影像与诊断报告处理进度"
+        actions={<Button icon={Plus} onClick={() => navigate('/exams/request')}>申请检查</Button>}
+      />
       {!patientProfile?.profileComplete ? <ProfileRequired /> : (
-        <div className="stat-grid">
-          <Stat title="资料状态" value="已完成" detail={patientProfile.patient?.patientNo} />
-          <Stat title="检查申请" value={exams.length} detail={latestStatus(exams)} />
-          <Stat title="影像检查" value={studies.length} detail={studies.some((item) => item.reportPublished) ? '已有可查看影像' : '处理中'} />
-          <Stat title="诊断报告" value={reports.length} detail={reports.some((item) => item.status === 'PUBLISHED') ? '已有已发布报告' : '处理中'} />
-        </div>
+        <>
+          <section className="metric-grid">
+            <Metric label="资料状态" value="已完成" detail={patientProfile.patient?.patientNo} tone="success" />
+            <Metric label="检查申请" value={exams.length} detail={statusLabel[exams[0]?.status] || '暂无'} tone="info" />
+            <Metric label="影像记录" value={studies.length} detail={studies.some((s) => s.reportPublished) ? '可查看' : '处理中'} tone="warning" />
+            <Metric label="诊断报告" value={reports.length} detail={reports.length > 0 ? `${publishedReports} 已发布` : '暂无'} tone="neutral" />
+          </section>
+
+          <section className="panel">
+            <SectionHeader icon={Activity} title="检查流程" />
+            <div className="workflow">
+              {patientFlow.map((item, index) => (
+                <div className="workflow-step" key={item}>
+                  <span>{index + 1}</span>
+                  <strong>{item}</strong>
+                  {index < patientFlow.length - 1 ? <ArrowRight size={14} className="workflow-arrow" aria-hidden="true" /> : null}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel">
+            <SectionHeader icon={ClipboardList} title="最近检查" actions={<Link to="/exams" className="link">查看全部</Link>} />
+            {exams.length ? (
+              <div className="todo-grid">
+                <div className="todo-card">
+                  <strong>{pendingExams}</strong>
+                  <span>待检查</span>
+                  <StatusTag tone="warning">等待医生处理</StatusTag>
+                </div>
+                <div className="todo-card">
+                  <strong>{inProgressExams}</strong>
+                  <span>检查中</span>
+                  <StatusTag tone="info">正在执行</StatusTag>
+                </div>
+                <div className="todo-card">
+                  <strong>{publishedReports}</strong>
+                  <span>已出报告</span>
+                  <StatusTag tone="success">可查看</StatusTag>
+                </div>
+              </div>
+            ) : (
+              <p className="muted">暂无检查记录，点击上方「申请检查」提交新的检查申请。</p>
+            )}
+          </section>
+        </>
       )}
     </div>
   );
@@ -48,7 +100,7 @@ export function PatientProfilePage() {
       birthDate: patientProfile.patient.birthDate || '1990-01-01',
       phone: patientProfile.patient.phone || '',
       hasContraindications: patientProfile.hasContraindications,
-      contraindications: patientProfile.contraindications.map((item) => ({
+      contraindications: (patientProfile.contraindications || []).map((item) => ({
         type: item.type,
         description: item.description || '',
         severity: item.severity || 'HIGH',
@@ -115,8 +167,11 @@ export function PatientProfilePage() {
             onChange={update}
             options={[{ value: 'false', label: '无禁忌症' }, { value: 'true', label: '有禁忌症' }]}
           />
-          {form.hasContraindications ? (
-            <div className="contra-editor wide">
+        </form>
+        {form.hasContraindications ? (
+          <section className="contra-section">
+            <SectionHeader icon={Plus} title="禁忌症明细" />
+            <div className="contra-editor">
               {form.contraindications.map((item, index) => (
                 <div className="contra-editor-row" key={index}>
                   <SelectField label="类型" name="type" value={item.type} onChange={(event) => updateContraindication(index, event)} options={['心脏起搏器', '金属植入物', '幽闭恐惧', '肾功能不全', '妊娠']} />
@@ -133,9 +188,9 @@ export function PatientProfilePage() {
                 contraindications: [...current.contraindications, emptyContraindication()],
               }))}>增加禁忌症</Button>
             </div>
-          ) : null}
-          <div className="form-submit"><Button icon={Save} busy={busyKey === 'saveMyProfile'}>{patientProfile?.profileComplete ? '保存资料' : '提交建档'}</Button></div>
-        </form>
+          </section>
+        ) : null}
+        <div className="form-submit" style={{ marginTop: 18 }}><Button icon={Save} onClick={submit} busy={busyKey === 'saveMyProfile'}>{patientProfile?.profileComplete ? '保存资料' : '提交建档'}</Button></div>
       </section>
     </div>
   );
@@ -152,7 +207,7 @@ export function PatientExamsPage() {
           { key: 'examItem', label: '检查项目' },
           { key: 'clinicalDiagnosis', label: '临床诊断' },
           { key: 'priority', label: '优先级' },
-          { key: 'schedule', label: '检查排程', render: (item) => item.schedules?.length ? `${formatTime(item.schedules[0].scheduledAt)} · ${item.schedules[0].scannerRoom}` : '待排程' },
+          { key: 'schedule', label: '检查排程', render: (item) => item.schedules?.length && item.schedules[0].scheduledAt ? `${formatTime(item.schedules[0].scheduledAt)} · ${item.schedules[0].scannerRoom}` : '待排程' },
           { key: 'status', label: '状态', render: (item) => <StatusTag status={item.status} /> },
         ]} />
       </section>
@@ -182,7 +237,7 @@ export function PatientImagesPage() {
           { key: 'description', label: '影像检查' },
           { key: 'status', label: '归档状态', render: (item) => <StatusTag status={item.status} /> },
           { key: 'fileCount', label: '文件数量' },
-          { key: 'visibility', label: '查看权限', render: (item) => item.reportPublished ? <Button variant="ghost" icon={Image} onClick={() => openStudy(item)}>查看影像</Button> : <span className="muted">报告发布后开放</span> },
+          { key: 'visibility', label: '影像', render: (item) => item.reportPublished ? <Button variant="ghost" icon={Image} onClick={() => openStudy(item)}>查看影像</Button> : <span className="muted">报告发布后开放</span> },
         ]} />
       </section>
       {manifest ? <PatientManifest manifest={manifest} onClose={() => setManifest(null)} /> : null}
@@ -211,6 +266,60 @@ export function PatientReportsPage() {
   );
 }
 
+export function PatientExamRequestPage() {
+  const { patientProfile, refreshPatientData, runAction, busyKey } = useApp();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ examItem: '', clinicalDiagnosis: '', priority: '普通' });
+
+  if (!patientProfile?.profileComplete) return <ProfileRequired />;
+
+  function update(event) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!form.examItem.trim()) return;
+    const body = {
+      patientId: patientProfile.patient.id,
+      examItem: form.examItem.trim(),
+      clinicalDiagnosis: form.clinicalDiagnosis.trim(),
+      priority: form.priority,
+    };
+    const result = await runAction(
+      'requestExam',
+      '提交检查申请',
+      () => api.createExam(body),
+      async () => { await refreshPatientData(false); },
+      { log: false },
+    );
+    if (result) {
+      navigate('/exams');
+    }
+  }
+
+  return (
+    <div className="page-stack">
+      <PageHeader title="申请检查" subtitle="提交新的 MRI 检查申请，医生将根据您的信息安排检查" />
+      <section className="panel">
+        <SectionHeader icon={ClipboardList} title="填写检查申请" />
+        <form className="form-grid" onSubmit={submit}>
+          <TextField label="检查项目" name="examItem" value={form.examItem} onChange={update} placeholder="如：头颅MRI平扫" />
+          <TextField label="临床诊断" name="clinicalDiagnosis" value={form.clinicalDiagnosis} onChange={update} placeholder="如：头痛待查" />
+          <SelectField label="优先级" name="priority" value={form.priority} onChange={update} options={['普通', '加急']} />
+          <div className="form-submit">
+            <Button icon={Send} busy={busyKey === 'requestExam'} disabled={!form.examItem.trim()}>
+              提交申请
+            </Button>
+          </div>
+        </form>
+        <p className="muted" style={{ marginTop: 16 }}>提交后申请状态为「待检查」，由医生处理排程。您可在「我的检查」中查看申请进度。</p>
+      </section>
+    </div>
+  );
+}
+
 function PatientManifest({ manifest, onClose }) {
   const files = useMemo(() => manifest.series?.flatMap((series) => series.files || []) || [], [manifest]);
   return (
@@ -227,35 +336,30 @@ function PatientManifest({ manifest, onClose }) {
 
 function PatientImageFile({ file }) {
   const { notify } = useApp();
+  const urlRef = useRef('');
   const [url, setUrl] = useState('');
   useEffect(() => {
     let active = true;
     api.myFileContent(file.id)
       .then((blob) => {
         if (!active) return;
-        setUrl(URL.createObjectURL(blob));
+        const objUrl = URL.createObjectURL(blob);
+        urlRef.current = objUrl;
+        setUrl(objUrl);
       })
       .catch((error) => {
         if (active) notify('error', '加载影像', error.message || '影像加载失败');
       });
     return () => {
       active = false;
-      if (url) URL.revokeObjectURL(url);
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     };
   }, [file.id, notify]);
-  return <div className="scan-item">{url ? <img src={url} alt={file.fileName} /> : <span>影像加载中</span>}<strong>{file.fileName}</strong></div>;
+  return <div className="scan-item">{url ? <img src={url} alt={file.fileName} className="scan-thumb-img" /> : <span>影像加载中</span>}<strong>{file.fileName}</strong></div>;
 }
 
 function ProfileRequired() {
   return <section className="panel profile-required"><UserRound size={28} /><strong>请先完成患者资料</strong><p>完成本人资料和 MRI 禁忌症登记后，即可查看检查、影像和报告进度。</p></section>;
-}
-
-function Stat({ title, value, detail }) {
-  return <section className="stat-card"><span>{title}</span><strong>{value}</strong><p>{detail || '暂无记录'}</p></section>;
-}
-
-function latestStatus(items) {
-  return items.length ? statusLabel[items[0].status] || items[0].status : '暂无记录';
 }
 
 function formatTime(value) {

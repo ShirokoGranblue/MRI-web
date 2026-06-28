@@ -76,6 +76,8 @@ class GatewayAuthFilterTest {
                 .isEqualTo(AuthorizationStatus.AUTHORIZED);
         assertThat(validator.authorize("/api/reports/mine", HttpMethod.GET, "Bearer " + patientToken).block().status())
                 .isEqualTo(AuthorizationStatus.AUTHORIZED);
+        assertThat(validator.authorize("/api/exams", HttpMethod.POST, "Bearer " + patientToken).block().status())
+                .isEqualTo(AuthorizationStatus.AUTHORIZED);
         assertThat(validator.authorize("/api/patients", HttpMethod.GET, "Bearer " + patientToken).block().status())
                 .isEqualTo(AuthorizationStatus.FORBIDDEN);
         assertThat(validator.authorize("/api/exams/1/start", HttpMethod.POST, "Bearer " + patientToken).block().status())

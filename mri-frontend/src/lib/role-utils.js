@@ -11,7 +11,8 @@ const doctorNavigation = [
 const patientNavigation = [
   { to: '/', label: '工作台', icon: 'dashboard', end: true },
   { to: '/patients', label: '我的资料', icon: 'patients' },
-  { to: '/exams', label: '我的检查', icon: 'exams' },
+  { to: '/exams/request', label: '申请检查', icon: 'exams' },
+  { to: '/exams', label: '我的检查', icon: 'exams', end: true },
   { to: '/images', label: '我的影像', icon: 'images' },
   { to: '/reports', label: '我的报告', icon: 'reports' },
 ];

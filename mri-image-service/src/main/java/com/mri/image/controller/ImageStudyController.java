@@ -187,8 +187,8 @@ public class ImageStudyController {
     @Operation(summary = "下载影像")
     @PostMapping("/studies/{studyId}/download")
     public ApiResult<DownloadLog> download(@PathVariable Long studyId,
-                                           @RequestParam(defaultValue = "demo-user") String operator,
-                                           @RequestParam(defaultValue = "教学演示下载") String reason) {
+                                           @RequestParam(defaultValue = "system-user") String operator,
+                                           @RequestParam(defaultValue = "影像查看") String reason) {
         if (!properties.isDownloadEnabled()) {
             throw new IllegalArgumentException("当前配置已关闭影像下载");
         }

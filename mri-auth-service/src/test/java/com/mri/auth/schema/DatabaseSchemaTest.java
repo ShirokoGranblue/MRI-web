@@ -48,12 +48,13 @@ class DatabaseSchemaTest {
     }
 
     @Test
-    void schemaSupportsPatientAccountBindingAndPatientRole() throws IOException {
+    void schemaSupportsPatientAccountBindingAndUtf8SafeSystemNames() throws IOException {
         String schema = Files.readString(schemaPath());
 
         assertThat(schema).contains("account_username VARCHAR(64)");
         assertThat(schema).contains("UNIQUE KEY uk_patient_account_username (account_username)");
-        assertThat(schema).contains("'PATIENT', '患者'");
+        assertThat(schema).contains("'PATIENT', CONVERT(0xE682A3E88085 USING utf8mb4)");
+        assertThat(schema).contains("CONVERT(0xE7B3BBE7BB9FE7AEA1E79086E59198 USING utf8mb4)");
     }
 
     @Test
@@ -63,7 +64,10 @@ class DatabaseSchemaTest {
         assertThat(Files.readString(migration))
                 .contains("information_schema.COLUMNS")
                 .contains("information_schema.STATISTICS")
-                .contains("'PATIENT', '患者'");
+                .contains("'PATIENT', CONVERT(0xE682A3E88085 USING utf8mb4)")
+                .contains("UPDATE sys_role")
+                .contains("UPDATE sys_user")
+                .contains("CONVERT(0xE7B3BBE7BB9FE7AEA1E79086E59198 USING utf8mb4)");
     }
 
     private static Path schemaPath() {

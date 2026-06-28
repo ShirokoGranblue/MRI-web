@@ -161,16 +161,16 @@ CREATE TABLE IF NOT EXISTS mri_report_audit_log (
 );
 
 INSERT INTO sys_role (id, role_code, role_name) VALUES
-  (1, 'ADMIN', '管理员'),
-  (2, 'REGISTRAR', '登记人员'),
-  (3, 'TECHNICIAN', '技师'),
-  (4, 'RADIOLOGIST', '诊断医生'),
-  (5, 'AUDITOR', '审核医生'),
-  (6, 'PATIENT', '患者')
+  (1, 'ADMIN', CONVERT(0xE7AEA1E79086E59198 USING utf8mb4)),
+  (2, 'REGISTRAR', CONVERT(0xE799BBE8AEB0E4BABAE59198 USING utf8mb4)),
+  (3, 'TECHNICIAN', CONVERT(0xE68A80E5B888 USING utf8mb4)),
+  (4, 'RADIOLOGIST', CONVERT(0xE8AF8AE696ADE58CBBE7949F USING utf8mb4)),
+  (5, 'AUDITOR', CONVERT(0xE5AEA1E6A0B8E58CBBE7949F USING utf8mb4)),
+  (6, 'PATIENT', CONVERT(0xE682A3E88085 USING utf8mb4))
 ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 
 INSERT INTO sys_user (id, username, password_hash, display_name, enabled) VALUES
-  (1, 'admin', 'bXJpLWRlbW8tc2FsdC0wMQ==:RXNbRsnC6O0uocAF8JkAe7ozzmURjU7gnQYBDpcs640=', '系统管理员', 'Y')
+  (1, 'admin', 'bXJpLWRlbW8tc2FsdC0wMQ==:RXNbRsnC6O0uocAF8JkAe7ozzmURjU7gnQYBDpcs640=', CONVERT(0xE7B3BBE7BB9FE7AEA1E79086E59198 USING utf8mb4), 'Y')
 ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), display_name = VALUES(display_name);
 
 INSERT INTO sys_user_role (id, user_id, role_code) VALUES

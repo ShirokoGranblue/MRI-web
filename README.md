@@ -97,7 +97,7 @@ npm run dev
 
 浏览器访问：`http://localhost:5173`
 
-前端采用 React + react-router 按功能分页，从登录页进入，使用用户化语言（不暴露 Study/Series/UID/Token/Redis/Nacos 等技术术语）。主要页面：
+前端采用 React + react-router 按功能分页，从登录页进入。主要页面：
 
 - **登录页**：医生登录与患者注册入口。
 - **医生工作台**：数量概览、检查流程、待办事项和最近操作。

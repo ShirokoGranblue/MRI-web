@@ -13,7 +13,7 @@
 解决：所有服务加入 `spring-cloud-starter-alibaba-nacos-discovery` 并配置 `spring.cloud.nacos.discovery.server-addr`。演示时先启动服务观察 Nacos 服务列表，再停止 `mri-image-service` 观察实例下线，最后重启观察重新注册。
 
 ## 3. API 网关 JWT 鉴权
-
+ 
 难点：登录接口需要放行，业务接口需要鉴权，登出 token 还要失效。
 
 解决：`mri-gateway` 使用 `GatewayAuthFilter` 统一拦截。`/api/auth/login`、Swagger、健康检查为白名单；其他接口必须携带 `Authorization: Bearer <token>`。`mri-auth-service` 登出后将 token 写入 Redis 黑名单，网关用响应式 Redis 查询黑名单后拒绝访问，并对用户管理、报告审核发布接口做基础角色限制。

@@ -5,3 +5,4 @@ $token = $response.data.token
 Set-Content -LiteralPath "target-demo-output-token.txt" -Value $token -NoNewline
 Write-Host "Login OK. Token saved to target-demo-output-token.txt"
 $response | ConvertTo-Json -Depth 8
+ 

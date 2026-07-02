@@ -4,7 +4,7 @@
 
 难点：Spring Boot、Spring Cloud、Spring Cloud Alibaba、Nacos Client 必须匹配，否则容易出现启动失败、配置无法加载或服务无法注册。
 
-解决：采用 Spring Boot 3.3.x、Spring Cloud 2023.0.x、Spring Cloud Alibaba 2023.0.3.4，并统一在根 `pom.xml` 做 BOM 管理。所有服务只声明 starter，不手写传递依赖版本。
+解决：采用 Spring Boot 3.5.x、Spring Cloud 2025.0.x、Spring Cloud Alibaba 2025.0.0.0，并统一在根 `pom.xml` 做 BOM 管理。所有服务只声明 starter，不手写传递依赖版本。
 
 ## 2. Nacos 注册中心的注册与注销演示
 
@@ -58,3 +58,27 @@
 难点：Windows PowerShell 的 `$ErrorActionPreference` 默认只处理 PowerShell 错误，Docker 等原生程序返回非零时脚本仍可能继续并误报“已清理”。此外，把含中文的 SQL 文本通过 Windows PowerShell 管道传入 MySQL 时，宿主机代码页可能造成 UTF-8 二次编码，使 admin 显示名和系统角色名在页面乱码。
 
 解决：基础设施启动和运行数据清理脚本在每个 Docker/Maven 边界后检查 `$LASTEXITCODE`，Docker 引擎或任一清理步骤失败时立即以非零状态终止。schema 和幂等迁移使用明确的 UTF-8 十六进制 SQL 表达式保存系统中文名称，并在迁移时规范化已有 admin 与角色定义。最终以数据库 `HEX`、字符长度、真实登录响应以及浏览器页面共同验证“系统管理员”和角色名称正确显示。
+
+## 11. Study ZIP 流式生成与成功下载审计
+
+难点：整组影像可能包含多个 Series 和同名文件，不能先把完整 ZIP 全部加载到内存，也不能在权限校验或对象读取失败时生成虚假下载记录。
+
+解决：影像服务使用 `StreamingResponseBody` 和 `ZipOutputStream` 直接向 HTTP 响应写入，每个对象由 MinIO 输入流复制到 ZIP entry。entry 使用 `series-{seriesId}/{安全化文件名}`，同一目录内重复名称追加序号。只有全部 entry 写入并执行 `finish()` 后才插入 `STUDY_ZIP` 下载记录；单文件下载则在对象成功读取后插入 `SINGLE` 记录。日志中的操作人只取网关注入的可信用户名，前端不能提交或覆盖操作人。
+
+## 12. 医生与患者下载访问隔离
+
+难点：患者下载不仅需要角色限制，还要同时满足患者归属和报告发布状态；只隐藏前端按钮无法阻止修改 File ID 或 Study ID 的越权请求。
+
+解决：医生下载使用通用路径，Gateway 拒绝 `PATIENT` 角色访问；患者下载使用 `/api/images/mine/**`，影像服务通过 `patient.account_username` 关联检查归属，并再次检查报告状态为 `PUBLISHED`。`downloadEnabled` 在四个下载入口统一由后端强制校验，前端禁用按钮只用于及时反馈。权限失败、配置关闭、记录不存在或对象读取失败均不写下载日志。
+
+## 13. MRI 风险快照与开始检查前实时复核
+
+难点：只在申请创建时读取禁忌症会形成过期判断，患者可能在排程后新增高风险植入物；患者服务不可用时继续开始检查也不符合安全优先原则。
+
+解决：检查申请创建和修改时由检查服务通过 OpenFeign 读取患者禁忌症，按 `NONE/LOW/HIGH` 规则保存风险级别、摘要和评估时间。未知或空严重程度按 `HIGH` 处理。开始检查时再次读取最新禁忌症并更新评估；高风险未确认返回 409 且保持 `REQUESTED`，确认后记录网关可信医生和确认时间再进入 `IN_PROGRESS`。患者服务异常直接中止状态流转。
+
+## 14. 基于半开区间的排程冲突算法
+
+难点：只比较开始时间无法发现部分重叠和跨检查室的技师冲突，还容易错误禁止首尾相接的排程。
+
+解决：排程增加 `duration_minutes`，服务层把每项排程转换为 `[start, end)`。两个区间在 `leftStart < rightEnd && rightStart < leftEnd` 时重叠；同一检查室或同一非空技师命中即返回 409。更新时排除当前记录，逻辑删除和已取消检查的排程不参与，结束时间等于下一项开始时间时允许保存。前端提供 30、45、60 分钟选项，后端独立校验 15—180 分钟边界。

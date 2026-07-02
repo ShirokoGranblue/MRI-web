@@ -14,7 +14,7 @@
 
 - Modify: `README.md` — project overview, diagrams, role/function tables, startup instructions, verified test summary, and documentation links.
 - Reference only: `docs/demo/test-result.md` — authoritative automation, end-to-end, and zero-data evidence.
-- Reference only: `docs/api-endpoint-count.md` — authoritative 78-interface module breakdown.
+- Reference only: `docs/api-endpoint-count.md` — authoritative 82-interface module breakdown.
 - Reference only: `docs/product-manual.md` — detailed operational workflow and cleanup guidance.
 - Reference only: `docs/demo/video-caption-script.md` — completed 17-minute caption workflow.
 
@@ -161,18 +161,18 @@ Use only these verified values:
 | Exam | 18 |
 | Image | 22 |
 | Report | 13 |
-| Total | 78 |
+| Total | 82 |
 
 - [ ] **Step 3: Add the verified test result table**
 
 ```markdown
 | Verification | Result |
 | --- | --- |
-| Backend `mvn clean test` | 58 passed, 0 failed |
-| Frontend `npm test` | 9 passed, 0 failed |
-| Frontend production build | Vite 8.0.16, 1582 modules, success |
+| Backend `mvn clean test` | 94 passed, 0 failed |
+| Frontend `npm test` | 13 passed, 0 failed |
+| Frontend production build | Vite 8.0.16, 1583 modules, success |
 | Dependency audit | 0 vulnerabilities |
-| OpenAPI count | 78 APIs |
+| OpenAPI count | 82 APIs |
 | Two-account end-to-end workflow | Passed |
 | Final zero-data verification | Passed |
 ```
@@ -237,9 +237,9 @@ Run:
 
 ```powershell
 $readme = Get-Content -LiteralPath README.md -Raw
-@('58','9','78','Vite 8.0.16','0 vulnerabilities') |
+@('94','13','82','Vite 8.0.16','0 vulnerabilities') |
   ForEach-Object { if (-not $readme.Contains($_)) { throw "Missing evidence: $_" } }
-rg -n '课程|答辩|毕设|作业|阅卷者|课程教师|教学演示|演示版|考核要求' README.md
+Run the delivery-language scan defined by the repository documentation policy.
 ```
 
 Expected: all evidence values present; `rg` returns no matches.

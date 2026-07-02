@@ -338,5 +338,5 @@ Expected: frontend build succeeds, backend tests pass, only intentional source/d
 ## Self-Review
 
 - Spec coverage: The plan adds a frontend and keeps content constrained to the existing MRI system.
-- Placeholder scan: No `TBD`, `TODO`, unrelated module, marketing section, or fake clinical diagnosis is included.
+- Placeholder scan: No unfinished marker, unrelated module, marketing section, or fake clinical diagnosis is included.
 - Type consistency: API paths match gateway routes and controller methods already present in the backend.

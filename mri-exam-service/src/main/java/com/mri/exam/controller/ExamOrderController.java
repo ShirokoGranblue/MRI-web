@@ -6,9 +6,11 @@ import com.mri.exam.dto.CreateExamOrderRequest;
 import com.mri.exam.dto.PatientExamView;
 import com.mri.exam.model.ExamOrder;
 import com.mri.exam.model.MriSchedule;
+import com.mri.exam.model.RiskAssessment;
 import com.mri.exam.repository.ExamOrderRepository;
 import com.mri.exam.service.ExamOrderService;
 import com.mri.exam.service.PatientExamQueryService;
+import com.mri.exam.service.ScheduleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,11 +34,14 @@ public class ExamOrderController {
     private final ExamOrderService service;
     private final ExamOrderRepository repository;
     private final PatientExamQueryService patientQuery;
+    private final ScheduleService scheduleService;
 
-    public ExamOrderController(ExamOrderService service, ExamOrderRepository repository, PatientExamQueryService patientQuery) {
+    public ExamOrderController(ExamOrderService service, ExamOrderRepository repository,
+                               PatientExamQueryService patientQuery, ScheduleService scheduleService) {
         this.service = service;
         this.repository = repository;
         this.patientQuery = patientQuery;
+        this.scheduleService = scheduleService;
     }
 
     @Operation(summary = "当前患者本人检查与排程")
@@ -47,7 +52,14 @@ public class ExamOrderController {
 
     @Operation(summary = "新增 MRI 检查申请")
     @PostMapping
-    public ApiResult<ExamOrder> create(@RequestBody CreateExamOrderRequest request) {
+    public ApiResult<ExamOrder> create(
+            @RequestBody CreateExamOrderRequest request,
+            @RequestHeader(value = "X-Authenticated-User", required = false) String username,
+            @RequestHeader(value = "X-Authenticated-Roles", required = false) String roles
+    ) {
+        if (hasRole(roles, "PATIENT")) {
+            return ApiResult.ok(service.createForPatient(patientQuery.requirePatientId(username), request));
+        }
         return ApiResult.ok(service.create(request));
     }
 
@@ -67,7 +79,7 @@ public class ExamOrderController {
     @Operation(summary = "修改 MRI 检查申请")
     @PutMapping("/{id}")
     public ApiResult<ExamOrder> update(@PathVariable Long id, @RequestBody CreateExamOrderRequest request) {
-        return ApiResult.ok(repository.update(id, request));
+        return ApiResult.ok(service.update(id, request));
     }
 
     @Operation(summary = "MRI 检查申请详情")
@@ -93,13 +105,13 @@ public class ExamOrderController {
     @Operation(summary = "新增检查排程")
     @PostMapping("/schedules")
     public ApiResult<MriSchedule> createSchedule(@RequestBody MriSchedule schedule) {
-        return ApiResult.ok(repository.createSchedule(schedule));
+        return ApiResult.ok(scheduleService.create(schedule));
     }
 
     @Operation(summary = "修改检查排程")
     @PutMapping("/schedules/{id}")
     public ApiResult<MriSchedule> updateSchedule(@PathVariable Long id, @RequestBody MriSchedule schedule) {
-        return ApiResult.ok(repository.updateSchedule(new MriSchedule(id, schedule.examOrderId(), schedule.scannerRoom(), schedule.scheduledAt(), schedule.technologist())));
+        return ApiResult.ok(scheduleService.update(id, schedule));
     }
 
     @Operation(summary = "删除检查排程")
@@ -123,8 +135,18 @@ public class ExamOrderController {
 
     @Operation(summary = "开始 MRI 检查")
     @PostMapping("/{id}/start")
-    public ApiResult<ExamOrder> start(@PathVariable Long id) {
-        return ApiResult.ok(service.start(id));
+    public ApiResult<ExamOrder> start(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "false") boolean confirmHighRisk,
+            @RequestHeader("X-Authenticated-User") String operator
+    ) {
+        return ApiResult.ok(service.start(id, confirmHighRisk, operator));
+    }
+
+    @Operation(summary = "获取当前 MRI 安全风险")
+    @GetMapping("/{id}/risk")
+    public ApiResult<RiskAssessment> risk(@PathVariable Long id) {
+        return ApiResult.ok(service.risk(id));
     }
 
     @Operation(summary = "完成 MRI 检查")
@@ -149,5 +171,17 @@ public class ExamOrderController {
     @PostMapping("/{id}/reported")
     public ApiResult<ExamOrder> markReported(@PathVariable Long id) {
         return ApiResult.ok(service.markReported(id));
+    }
+
+    private static boolean hasRole(String roles, String role) {
+        if (roles == null || roles.isBlank()) {
+            return false;
+        }
+        for (String current : roles.split(",")) {
+            if (role.equals(current.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

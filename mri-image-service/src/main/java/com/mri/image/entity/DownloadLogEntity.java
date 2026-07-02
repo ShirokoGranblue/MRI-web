@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 @TableName("mri_download_log")
 public class DownloadLogEntity extends BaseEntity {
     private Long studyId;
+    private Long fileId;
+    private String downloadType;
     private String operator;
     private String reason;
     private LocalDateTime downloadedAt;
@@ -18,6 +20,22 @@ public class DownloadLogEntity extends BaseEntity {
 
     public void setStudyId(Long studyId) {
         this.studyId = studyId;
+    }
+
+    public Long getFileId() {
+        return fileId;
+    }
+
+    public void setFileId(Long fileId) {
+        this.fileId = fileId;
+    }
+
+    public String getDownloadType() {
+        return downloadType;
+    }
+
+    public void setDownloadType(String downloadType) {
+        this.downloadType = downloadType;
     }
 
     public String getOperator() {

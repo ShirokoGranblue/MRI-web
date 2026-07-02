@@ -73,7 +73,7 @@ class AuthServiceTest {
         PasswordHasher hasher = new PasswordHasher();
         JwtTokenProvider jwt = new JwtTokenProvider("0123456789abcdef0123456789abcdef", Duration.ofHours(2));
         when(users.findByUsername("patient01")).thenReturn(Optional.of(
-                new UserRecord(9L, "patient01", hasher.hash("old"), "旧用户", Set.of("PATIENT"))
+                new UserRecord(9L, "patient01", hasher.hash("oldpass1"), "旧用户", Set.of("PATIENT"))
         ));
 
         AuthService service = new AuthService(users, blacklist, hasher, jwt);

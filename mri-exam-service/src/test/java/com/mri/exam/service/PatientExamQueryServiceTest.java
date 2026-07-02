@@ -10,10 +10,26 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class PatientExamQueryServiceTest {
+    @Test
+    void resolvesAuthenticatedPatientIdAndRejectsMissingProfile() {
+        PatientExamAccessMapper access = mock(PatientExamAccessMapper.class);
+        ExamOrderRepository repository = mock(ExamOrderRepository.class);
+        when(access.findPatientId("patient01")).thenReturn(12L);
+        when(access.findPatientId("no-profile")).thenReturn(null);
+
+        PatientExamQueryService service = new PatientExamQueryService(access, repository);
+
+        assertThat(service.requirePatientId("patient01")).isEqualTo(12L);
+        assertThatThrownBy(() -> service.requirePatientId("no-profile"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("患者资料");
+    }
+
     @Test
     void returnsOnlyExamsResolvedFromCurrentUsernameWithSchedules() {
         PatientExamAccessMapper access = mock(PatientExamAccessMapper.class);

@@ -11,6 +11,7 @@ import com.mri.image.storage.MinioImageStorage.LoadedObject;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URLConnection;
 import java.security.MessageDigest;
 import java.util.List;
 import java.util.Map;
@@ -107,22 +108,41 @@ public class ImageStudyService {
     }
 
     public ImageFile createFile(ImageFile file, Long studyId) {
+        requireSeriesInStudy(file.seriesId(), studyId);
         ImageFile created = repository.createFile(file);
         cache.evict(studyId);
         return created;
     }
 
-    public ImageFile uploadFile(Long seriesId, MultipartFile file) {
+    public ImageFile uploadFile(Long studyId, Long seriesId, MultipartFile file) {
+        requireSeriesInStudy(seriesId, studyId);
         String objectKey = "series/" + seriesId + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
         try {
-            storage.putObject(objectKey, file.getInputStream(), file.getSize(), file.getContentType());
+            storage.putObject(objectKey, file.getInputStream(), file.getSize(), resolveContentType(file));
         } catch (java.io.IOException e) {
             throw new IllegalStateException("读取上传文件失败", e);
         }
         String checksum = sha256(file);
         ImageFile saved = repository.createFile(new ImageFile(null, seriesId, file.getOriginalFilename(), objectKey, checksum));
-        cache.evict(seriesStudyId(seriesId));
+        cache.evict(studyId);
         return saved;
+    }
+
+    private String resolveContentType(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType != null && !contentType.isBlank() && !"application/octet-stream".equalsIgnoreCase(contentType)) {
+            return contentType;
+        }
+        String inferred = URLConnection.guessContentTypeFromName(file.getOriginalFilename());
+        return inferred == null ? "application/octet-stream" : inferred;
+    }
+
+    private void requireSeriesInStudy(Long seriesId, Long studyId) {
+        MriSeries series = repository.findSeries(seriesId)
+                .orElseThrow(() -> new IllegalArgumentException("Series 不存在"));
+        if (!studyId.equals(series.studyId())) {
+            throw new IllegalArgumentException("所选 Series 不属于该 Study");
+        }
     }
 
     public LoadedObject streamFile(Long fileId) {
@@ -152,10 +172,6 @@ public class ImageStudyService {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private Long seriesStudyId(Long seriesId) {
-        return repository.findSeries(seriesId).map(MriSeries::studyId).orElse(null);
     }
 
     public ViewerManifest viewerManifest(Long studyId, String watermark, boolean downloadEnabled) {

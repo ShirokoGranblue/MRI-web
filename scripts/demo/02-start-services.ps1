@@ -7,6 +7,18 @@ $root = (Get-Location).Path
 $outputDir = Join-Path $root "target-demo-output"
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
+if ([string]::IsNullOrWhiteSpace($env:MRI_JWT_SECRET)) {
+  $secretBytes = New-Object byte[] 32
+  $random = [Security.Cryptography.RandomNumberGenerator]::Create()
+  try {
+    $random.GetBytes($secretBytes)
+  } finally {
+    $random.Dispose()
+  }
+  $env:MRI_JWT_SECRET = [Convert]::ToBase64String($secretBytes)
+  Write-Host "Generated an in-memory JWT secret for this service group."
+}
+
 Write-Host "Packaging modules before starting services..."
 mvn -DskipTests install
 if ($LASTEXITCODE -ne 0) {

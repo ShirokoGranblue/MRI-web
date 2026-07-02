@@ -1,2 +1,2 @@
-https://github.com/ShirokoGranblue/MRI-web
-使用的工具：Adobe Premiere Pro 2024 , Visual Studio Code1.126.0 , OBS Studio32.1.1.0 , Codex149.0.7827.197 , Google Chrome150.0.7871.47
+仓库地址：https://github.com/ShirokoGranblue/MRI-web
+使用的工具：Adobe Premiere Pro 2024 , Visual Studio Code 1.126.0 , OBS Studio 32.1.1.0 , Codex 149.0.7827.197 , Google Chrome 150.0.7871.47 , Docker Desktop 4.74.0 (227015)

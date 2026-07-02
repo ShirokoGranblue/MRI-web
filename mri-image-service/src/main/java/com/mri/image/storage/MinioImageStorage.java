@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 @Component
 public class MinioImageStorage {
@@ -59,7 +60,7 @@ public class MinioImageStorage {
                     .contentType(contentType)
                     .build());
         } catch (Exception ex) {
-            throw new IllegalStateException("上传影像到对象存储失败: " + ex.getMessage(), ex);
+            throw new IllegalStateException("上传影像失败，请稍后重试", ex);
         }
     }
 
@@ -83,7 +84,18 @@ public class MinioImageStorage {
                     .build()).contentType();
             return new LoadedObject(out.toByteArray(), contentType == null ? "application/octet-stream" : contentType);
         } catch (Exception ex) {
-            throw new IllegalStateException("影像文件不存在或未上传: " + objectKey, ex);
+            throw new IllegalStateException("影像文件不存在或未上传", ex);
+        }
+    }
+
+    public void writeObject(String objectKey, OutputStream output) {
+        try (InputStream in = client.getObject(GetObjectArgs.builder()
+                .bucket(properties.bucket())
+                .object(objectKey)
+                .build())) {
+            in.transferTo(output);
+        } catch (Exception ex) {
+            throw new IllegalStateException("影像文件不存在或未上传", ex);
         }
     }
 

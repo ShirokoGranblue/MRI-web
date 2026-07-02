@@ -3,6 +3,8 @@ package com.mri.exam.entity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mri.common.domain.BaseEntity;
 
+import java.time.LocalDateTime;
+
 @TableName("mri_exam_order")
 public class ExamOrderEntity extends BaseEntity {
     private Long patientId;
@@ -10,6 +12,11 @@ public class ExamOrderEntity extends BaseEntity {
     private String clinicalDiagnosis;
     private String priority;
     private String status;
+    private String riskLevel;
+    private String riskSummary;
+    private LocalDateTime riskEvaluatedAt;
+    private String riskConfirmedBy;
+    private LocalDateTime riskConfirmedAt;
 
     public Long getPatientId() {
         return patientId;
@@ -49,5 +56,45 @@ public class ExamOrderEntity extends BaseEntity {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getRiskLevel() {
+        return riskLevel;
+    }
+
+    public void setRiskLevel(String riskLevel) {
+        this.riskLevel = riskLevel;
+    }
+
+    public String getRiskSummary() {
+        return riskSummary;
+    }
+
+    public void setRiskSummary(String riskSummary) {
+        this.riskSummary = riskSummary;
+    }
+
+    public LocalDateTime getRiskEvaluatedAt() {
+        return riskEvaluatedAt;
+    }
+
+    public void setRiskEvaluatedAt(LocalDateTime riskEvaluatedAt) {
+        this.riskEvaluatedAt = riskEvaluatedAt;
+    }
+
+    public String getRiskConfirmedBy() {
+        return riskConfirmedBy;
+    }
+
+    public void setRiskConfirmedBy(String riskConfirmedBy) {
+        this.riskConfirmedBy = riskConfirmedBy;
+    }
+
+    public LocalDateTime getRiskConfirmedAt() {
+        return riskConfirmedAt;
+    }
+
+    public void setRiskConfirmedAt(LocalDateTime riskConfirmedAt) {
+        this.riskConfirmedAt = riskConfirmedAt;
     }
 }

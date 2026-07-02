@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 import {
+  api,
   apiRequest,
   clearSession,
+  downloadAttachment,
   getStoredSession,
   getStoredUser,
   getToken,
@@ -113,4 +115,71 @@ test('403 响应提示无权限但保留登录会话', async () => {
 
   assert.equal(getToken(), 'patient-token');
   assert.equal(getStoredUser(), 'patient01');
+});
+
+test('下载助手附带令牌并解析 UTF-8 文件名且延迟释放临时地址', async () => {
+  saveSession({ token: 'doctor-token', username: 'admin' });
+  const clicks = [];
+  const removals = [];
+  const revoked = [];
+  const scheduled = [];
+  const originalSetTimeout = globalThis.setTimeout;
+  const anchor = {
+    click: () => clicks.push(true),
+    remove: () => removals.push(true),
+    style: {},
+  };
+  globalThis.document = {
+    createElement: () => anchor,
+    body: { appendChild: () => {} },
+  };
+  globalThis.URL.createObjectURL = () => 'blob:mri-download';
+  globalThis.URL.revokeObjectURL = (value) => revoked.push(value);
+  globalThis.setTimeout = (callback, delay) => {
+    scheduled.push({ callback, delay });
+  };
+  globalThis.fetch = async (path, options) => {
+    assert.equal(path, '/api/images/studies/31/download?reason=%E4%BC%9A%E8%AF%8A&transport=browser');
+    assert.equal(options.headers.Authorization, 'Bearer doctor-token');
+    return new Response(new Blob(['zip-bytes']), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.mri.study-archive',
+      },
+    });
+  };
+
+  try {
+    const fileName = await api.downloadStudy(31, '会诊');
+
+    assert.equal(fileName, 'Study-31-影像.zip');
+    assert.equal(anchor.download, 'Study-31-影像.zip');
+    assert.equal(anchor.href, 'blob:mri-download');
+    assert.equal(clicks.length, 1);
+    assert.deepEqual(removals, []);
+    assert.deepEqual(revoked, []);
+    assert.equal(scheduled.length, 1);
+    assert.equal(scheduled[0].delay, 1000);
+
+    scheduled[0].callback();
+    assert.equal(removals.length, 1);
+    assert.deepEqual(revoked, ['blob:mri-download']);
+  } finally {
+    globalThis.setTimeout = originalSetTimeout;
+  }
+});
+
+test('下载 403 保留会话并优先显示后端业务提示', async () => {
+  saveSession({ token: 'patient-token', username: 'patient01' });
+  globalThis.fetch = async () => new Response(
+    JSON.stringify({ message: '诊断报告发布后方可下载影像' }),
+    { status: 403, headers: { 'Content-Type': 'application/json' } },
+  );
+
+  await assert.rejects(downloadAttachment('/api/images/mine/files/41/download'), (error) => {
+    assert.equal(error.status, 403);
+    assert.equal(error.message, '诊断报告发布后方可下载影像');
+    return true;
+  });
+  assert.equal(getToken(), 'patient-token');
 });

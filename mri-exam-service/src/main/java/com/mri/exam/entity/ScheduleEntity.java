@@ -11,6 +11,7 @@ public class ScheduleEntity extends BaseEntity {
     private String scannerRoom;
     private LocalDateTime scheduledAt;
     private String technologist;
+    private Integer durationMinutes;
 
     public Long getExamOrderId() {
         return examOrderId;
@@ -42,5 +43,13 @@ public class ScheduleEntity extends BaseEntity {
 
     public void setTechnologist(String technologist) {
         this.technologist = technologist;
+    }
+
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
+
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
     }
 }

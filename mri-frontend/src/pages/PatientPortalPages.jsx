@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Activity, ArrowRight, ClipboardList, FileText, Image, Plus, RefreshCw, Save, Send, Trash2, UserRound } from 'lucide-react';
+import { Activity, ArrowRight, ClipboardList, Download, FileText, Image, Plus, RefreshCw, Save, Send, Trash2, UserRound } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { statusLabel, useApp } from '../lib/app-context.jsx';
 import { patientLandingPath } from '../lib/role-utils.js';
@@ -231,7 +231,7 @@ export function PatientImagesPage() {
   }
   return (
     <div className="page-stack">
-      <PageHeader title="我的影像" subtitle="报告发布后可查看本人相关影像" actions={<Button icon={RefreshCw} variant="secondary" onClick={() => refreshPatientData(true)} busy={busyKey === 'patientData'}>刷新</Button>} />
+      <PageHeader title="我的影像" subtitle="报告发布后可查看并下载本人相关影像" actions={<Button icon={RefreshCw} variant="secondary" onClick={() => refreshPatientData(true)} busy={busyKey === 'patientData'}>刷新</Button>} />
       <section className="panel">
         <DataTable rows={studies} emptyText="暂无影像记录" columns={[
           { key: 'description', label: '影像检查' },
@@ -321,21 +321,41 @@ export function PatientExamRequestPage() {
 }
 
 function PatientManifest({ manifest, onClose }) {
+  const { runAction, busyKey } = useApp();
   const files = useMemo(() => manifest.series?.flatMap((series) => series.files || []) || [], [manifest]);
+  const downloadEnabled = manifest.downloadEnabled !== false;
+
+  async function downloadAll() {
+    await runAction(
+      `my-download-study-${manifest.study.id}`,
+      '下载整组影像',
+      () => api.myDownloadStudy(manifest.study.id),
+      undefined,
+      { log: false, successMessage: '整组影像已保存到本地' },
+    );
+  }
+
   return (
     <div className="dialog-overlay" role="dialog" aria-modal="true">
       <div className="dialog-card dialog-wide">
-        <div className="dialog-head dialog-head-row"><strong>{manifest.study.description || 'MRI 影像'}</strong><Button variant="ghost" onClick={onClose}>关闭</Button></div>
+        <div className="dialog-head dialog-head-row">
+          <strong>{manifest.study.description || 'MRI 影像'}</strong>
+          <div className="table-actions">
+            <Button icon={Download} disabled={!downloadEnabled || !files.length} busy={busyKey === `my-download-study-${manifest.study.id}`} onClick={downloadAll}>下载全部</Button>
+            <Button variant="ghost" onClick={onClose}>关闭</Button>
+          </div>
+        </div>
+        {!downloadEnabled ? <p className="inline-notice">当前配置已关闭影像下载。</p> : null}
         <div className="scan-grid">
-          {files.map((file) => <PatientImageFile file={file} key={file.id} />)}
+          {files.map((file) => <PatientImageFile file={file} downloadEnabled={downloadEnabled} key={file.id} />)}
         </div>
       </div>
     </div>
   );
 }
 
-function PatientImageFile({ file }) {
-  const { notify } = useApp();
+function PatientImageFile({ file, downloadEnabled }) {
+  const { notify, runAction, busyKey } = useApp();
   const urlRef = useRef('');
   const [url, setUrl] = useState('');
   useEffect(() => {
@@ -355,7 +375,27 @@ function PatientImageFile({ file }) {
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     };
   }, [file.id, notify]);
-  return <div className="scan-item">{url ? <img src={url} alt={file.fileName} className="scan-thumb-img" /> : <span>影像加载中</span>}<strong>{file.fileName}</strong></div>;
+  return (
+    <div className="scan-item">
+      {url ? <img src={url} alt={file.fileName} className="scan-thumb-img" /> : <span>影像加载中</span>}
+      <strong>{file.fileName}</strong>
+      <Button
+        icon={Download}
+        variant="secondary"
+        disabled={!downloadEnabled}
+        busy={busyKey === `my-download-file-${file.id}`}
+        onClick={() => runAction(
+          `my-download-file-${file.id}`,
+          '下载影像',
+          () => api.myDownloadFile(file.id),
+          undefined,
+          { log: false, successMessage: '影像已保存到本地' },
+        )}
+      >
+        下载
+      </Button>
+    </div>
+  );
 }
 
 function ProfileRequired() {

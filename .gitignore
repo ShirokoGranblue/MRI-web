@@ -13,4 +13,9 @@ mri-frontend/dist/
 mri-frontend/.vite/
 .worktrees/
 .omc/
+.agents/
+.codex/
+.github/modernize/
 target-patient-*
+docs/superpowers/
+output/playwright/

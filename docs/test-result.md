@@ -1,77 +1,118 @@
 # 测试执行结果
 
-已在本机 Java 21 环境执行全量测试：
+## 后端全量测试
+
+执行命令：
 
 ```powershell
 mvn clean test
 ```
 
-执行结果摘要：
+执行环境：Java 21、Maven Reactor。
 
-| 模块 | 结果 |
-| --- | --- |
-| `mri-cloud` | SUCCESS |
-| `mri-common` | SUCCESS |
-| `mri-auth-service` | SUCCESS |
-| `mri-patient-service` | SUCCESS |
-| `mri-exam-service` | SUCCESS |
-| `mri-image-service` | SUCCESS |
-| `mri-report-service` | SUCCESS |
-| `mri-gateway` | SUCCESS |
+| 模块 | 测试数 | 失败 | 错误 | 跳过 |
+| --- | ---: | ---: | ---: | ---: |
+| `mri-common` | 3 | 0 | 0 | 0 |
+| `mri-auth-service` | 11 | 0 | 0 | 0 |
+| `mri-patient-service` | 10 | 0 | 0 | 0 |
+| `mri-exam-service` | 29 | 0 | 0 | 0 |
+| `mri-image-service` | 32 | 0 | 0 | 0 |
+| `mri-report-service` | 12 | 0 | 0 | 0 |
+| `mri-gateway` | 6 | 0 | 0 | 0 |
+| **合计** | **103** | **0** | **0** | **0** |
 
-测试用例合计 58 个，失败 0 个，错误 0 个，跳过 0 个。Maven 编译日志显示 `javac [debug parameters release 21]`。新增覆盖患者注册固定 PATIENT 角色、重复用户名冲突、真实当前用户、患者账号字段迁移、网关 401/403 四态权限、医生患者资料只读、患者本人档案和禁忌症一致性、本人检查与排程、未发布报告正文脱敏、影像归属与发布门禁；原认证、缓存、Feign、状态机、MinIO、自恢复、multipart、报告审核发布测试继续通过。
+最近一次执行结果为 `BUILD SUCCESS`。编译过程中的未检查操作提示和 Java agent 提示属于警告，不计为测试失败。
 
-控制台摘要：
+新增覆盖包括：
 
-```text
-Reactor Summary for mri-cloud 1.0.0:
-mri-cloud .......................................... SUCCESS
-mri-common ......................................... SUCCESS
-mri-auth-service ................................... SUCCESS
-mri-patient-service ................................ SUCCESS
-mri-exam-service ................................... SUCCESS
-mri-image-service .................................. SUCCESS
-mri-report-service ................................. SUCCESS
-mri-gateway ........................................ SUCCESS
-BUILD SUCCESS
-```
-## 前端构建验证
+- 数据库初始化字段与增强迁移字段检查；
+- PBKDF2 密码哈希、随机盐、旧哈希兼容和畸形哈希拒绝；
+- `NONE/LOW/HIGH` 风险分级和未知严重程度的安全处理；
+- 创建申请保存风险快照；
+- 开始检查前重新读取禁忌症；
+- 高风险未确认返回 409，高风险确认记录当前医生和时间；
+- 患者服务异常时阻止开始检查；
+- 检查室时间重叠和技师跨检查室重叠；
+- 半开区间首尾相接、更新排除自身、时长边界和非待检查状态；
+- 单文件字节、MIME 和原始文件名；
+- Study ZIP 的 Series 目录、跨 Series 同名文件和成功后审计；
+- 下载关闭、空 Study、对象读取失败不写虚假下载记录；
+- 对象读取失败不向用户暴露对象存储路径；
+- 患者本人和报告发布门禁；
+- 已审核/已发布报告不可修改或删除，审核动作必须记录已认证操作人；
+- Gateway 允许患者 `/mine` 下载并拒绝患者通用下载、风险确认和排程写操作。
 
-已在 `mri-frontend` 执行：
+## 前端轻量回归
+
+正式命令：
 
 ```powershell
-npm install
+Set-Location mri-frontend
 npm test
-npm run build
-npm audit --json
 ```
 
-执行结果：
+测试文件也可在受限环境中分别执行：
 
-- `npm test`：9 个前端回归测试全部通过，失败 0 个，覆盖失效会话清理、403 保持会话、HTTP 错误用户化、业务提示优先级、网络异常提示、角色会话、患者导航、注册用户名默认行为和首次建档跳转。
-- `npm run build`：SUCCESS，Vite 8.0.16 生成 `dist/index.html`、CSS 和 JS 资源。前端按角色展示医生工作台或患者本人门户。
-- `npm audit --json`：漏洞数量为 0。
+```powershell
+node src/lib/api.test.js
+node src/lib/role-utils.test.js
+node src/lib/workflow-utils.test.js
+```
 
-## 双账号端到端验证
+当前三个测试文件合计 13 项，覆盖：
 
-- 患者在登录页注册 `patient01`，用户名由姓名自动带出后可自定义。
-- 患者首次登录提交本人资料和金属植入物禁忌症，顶部成功提示正常。
-- 医生患者页仅显示详情，无新增、编辑和删除入口。
-- 医生通过真实网关完成检查申请、排程、开始、完成、Study、Series、multipart 文件上传和报告审核发布。
-- 报告发布前患者报告正文为空，影像 manifest 返回 403。
-- 报告发布后患者看到完整报告、1 个影像文件并成功打开预览。
-- PATIENT token 调用医生写接口返回 403，患者会话保持有效。
+- 401 清除会话；
+- 403 保留会话；
+- HTTP、业务错误和网络错误的用户提示；
+- 角色会话、患者导航和首次建档跳转；
+- 下载请求附带 JWT；
+- UTF-8 `Content-Disposition` 文件名解析；
+- Blob Object URL 创建、点击和释放；
+- 医生与患者下载路径；
+- 风险标签映射；
+- 排程结束时间计算。
 
-## 最终零数据与空环境验证
+## 前端生产构建
 
-端到端验证结束后执行 `scripts/db/clear-runtime-data.ps1`。脚本实际删除了上传到 `mri-images` bucket 的验证影像，并保留空 bucket。独立查询结果：
+执行命令：
 
-- `patient`、`mri_contraindication`、`mri_exam_order`、`mri_schedule`、`mri_study`、`mri_series`、`mri_image_file`、`mri_download_log`、`mri_report`、`mri_report_audit_log`：全部为 0。
-- 具有 `PATIENT` 角色的账号：0。
-- admin：保留、启用，显示名为“系统管理员”，角色为 `ADMIN`、`RADIOLOGIST`、`AUDITOR`。
-- `PATIENT` 角色定义：保留。
-- Redis `DBSIZE`：0。
-- MinIO `mri-images`：`0 B / 0 objects / 0 versions`，bucket 保留。
-- `storage/mri-images`：仅保留 `.gitkeep`。
+```powershell
+Set-Location mri-frontend
+npm run build
+```
 
-通过 8080 网关完成不写业务数据的冒烟验证：admin 登录和 `/api/auth/me` 成功；患者、检查、Study、报告四个分页接口均返回 `total: 0, records: []`。浏览器中医生工作台四项统计均为 0，患者页为只读空列表，检查、影像和报告页显示正常空状态；未发现前端运行错误。
+最近一次输出：
+
+```text
+vite v8.0.16
+1583 modules transformed
+dist/index.html                   0.42 kB
+dist/assets/index-BJNa2APd.css   15.97 kB
+dist/assets/index-BC-g9aeZ.js   239.21 kB
+built successfully
+```
+
+## 运行态验证项目
+
+运行态验证使用真实 MySQL、Redis、Nacos、MinIO、五个业务服务和 Gateway，按以下顺序执行：
+
+1. 连续执行增强迁移两次并检查字段；
+2. 创建患者、禁忌症、检查申请和排程；
+3. 验证高风险未确认保持待检查，确认后进入检查中；
+4. 验证同检查室冲突、同技师冲突和首尾相接；
+5. 上传两个 Series 的同名影像；
+6. 验证医生单文件和 Study ZIP 下载；
+7. 验证患者本人/他人、发布前/发布后的访问隔离；
+8. 查询成功下载记录；
+9. 运行 OpenAPI 统计；
+10. 执行运行数据清理并独立检查零数据。
+
+本次完整运行结果：
+
+- 两份幂等迁移均连续执行两次成功，8 个增强字段各存在一份；
+- 医生单文件下载返回 `image/png` 和 UTF-8 文件名，下载字节的 SHA-256 与源文件一致；
+- `Study-1-影像.zip` 可正常打开，包含两个不同 `series-{seriesId}` 目录下的同名文件；
+- 发布前、其他患者和 PATIENT 访问医生下载接口均被拒绝，失败请求未写下载记录；
+- 浏览器将医生单文件、Study ZIP 和患者本人单文件真实保存到 Windows 下载目录；
+- OpenAPI 实际统计为 82 个接口；
+- 清理后的零数据结果见 README 的“最终交付状态”。

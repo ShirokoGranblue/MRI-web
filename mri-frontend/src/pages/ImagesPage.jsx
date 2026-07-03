@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Archive, Eye, Image, Plus, RefreshCw, Trash2, UploadCloud, Zap } from 'lucide-react';
+import { Archive, Download, Eye, Image, Plus, RefreshCw, Trash2, UploadCloud, Zap } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { statusLabel, useApp } from '../lib/app-context.jsx';
 import { Button, DataTable, EmptyState, PageHeader, SectionHeader, SelectField, StatusTag, TextField, useConfirm } from '../components/ui.jsx';
@@ -35,7 +35,17 @@ export default function ImagesPage() {
   const [seriesForm, setSeriesForm] = useState({ seriesName: '', bodyPosition: '头部' });
   const [uploadSeriesId, setUploadSeriesId] = useState('');
   const [files, setFiles] = useState([]);
+  const [downloadEnabled, setDownloadEnabled] = useState(true);
+  const [downloadReason, setDownloadReason] = useState('诊断查看');
+  const [otherReason, setOtherReason] = useState('');
+  const [downloadLogs, setDownloadLogs] = useState([]);
   const { ask, dialog } = useConfirm();
+
+  useEffect(() => {
+    api.demoConfig()
+      .then((config) => setDownloadEnabled(config.downloadEnabled !== false))
+      .catch(() => setDownloadEnabled(false));
+  }, []);
 
   const examOptions = exams
     .filter((e) => e.status === 'COMPLETED')
@@ -79,9 +89,15 @@ export default function ImagesPage() {
     }
   }
 
+  async function loadDownloadLogs(studyId) {
+    const records = await api.downloadLogs(studyId).catch(() => []);
+    setDownloadLogs(records);
+  }
+
   function selectStudy(s) {
     setSelectedId(s.id);
     loadManifest(s.id);
+    loadDownloadLogs(s.id);
   }
 
   async function addSeries(event) {
@@ -121,6 +137,30 @@ export default function ImagesPage() {
 
   async function quickPreview() {
     await runAction('cacheDemo', '快速预览', () => api.cacheDemo(selectedId));
+  }
+
+  function resolvedDownloadReason() {
+    return downloadReason === '其他' ? `其他：${otherReason.trim()}` : downloadReason;
+  }
+
+  async function downloadFile(file) {
+    await runAction(
+      `download-file-${file.id}`,
+      '下载单张影像',
+      () => api.downloadFile(file.id, resolvedDownloadReason()),
+      () => loadDownloadLogs(selectedId),
+      { successMessage: '影像已保存到本地' },
+    );
+  }
+
+  async function downloadStudy() {
+    await runAction(
+      `download-study-${selectedId}`,
+      '下载整组影像',
+      () => api.downloadStudy(selectedId, resolvedDownloadReason()),
+      () => loadDownloadLogs(selectedId),
+      { successMessage: '整组影像已保存到本地' },
+    );
   }
 
   const allFiles = manifest?.series?.flatMap((s) => (s.files || []).map((f) => ({ ...f, seriesName: s.seriesName }))) || [];
@@ -173,8 +213,32 @@ export default function ImagesPage() {
           <SectionHeader
             icon={Image}
             title={`影像管理 · 检查 ${selectedId}`}
-            actions={<Button icon={Zap} variant="secondary" onClick={quickPreview} busy={busyKey === 'cacheDemo'}>快速预览</Button>}
+            actions={<>
+              <Button icon={Zap} variant="secondary" onClick={quickPreview} busy={busyKey === 'cacheDemo'}>快速预览</Button>
+              <Button
+                icon={Download}
+                onClick={downloadStudy}
+                disabled={!downloadEnabled || !allFiles.length || (downloadReason === '其他' && !otherReason.trim())}
+                busy={busyKey === `download-study-${selectedId}`}
+              >
+                下载全部
+              </Button>
+            </>}
           />
+
+          <div className="download-controls">
+            <SelectField
+              label="下载用途"
+              name="downloadReason"
+              value={downloadReason}
+              onChange={(event) => setDownloadReason(event.target.value)}
+              options={['诊断查看', '会诊', '归档导出', '其他']}
+            />
+            {downloadReason === '其他' ? (
+              <TextField label="用途说明" name="otherReason" value={otherReason} onChange={(event) => setOtherReason(event.target.value)} placeholder="请填写下载用途" />
+            ) : null}
+            {!downloadEnabled ? <p className="inline-notice">当前配置已关闭影像下载。</p> : null}
+          </div>
 
           <form className="form-grid compact" onSubmit={addSeries}>
             <TextField label="序列名称" name="seriesName" value={seriesForm.seriesName} onChange={updateSeries} placeholder="如：T1_AX" />
@@ -212,6 +276,15 @@ export default function ImagesPage() {
                   <ImageThumb file={f} />
                   <strong>{f.seriesName}</strong>
                   <span>{f.fileName}</span>
+                  <Button
+                    icon={Download}
+                    variant="secondary"
+                    onClick={() => downloadFile(f)}
+                    disabled={!downloadEnabled || (downloadReason === '其他' && !otherReason.trim())}
+                    busy={busyKey === `download-file-${f.id}`}
+                  >
+                    下载
+                  </Button>
                   <Button icon={Trash2} variant="ghost" onClick={() => removeFile(f)}>删除</Button>
                 </div>
               ))}
@@ -219,6 +292,16 @@ export default function ImagesPage() {
           ) : (
             <EmptyState text="暂无影像文件，请上传。" icon={Image} />
           )}
+
+          <div className="download-log-panel">
+            <h3>最近下载记录</h3>
+            {downloadLogs.length ? downloadLogs.slice(0, 8).map((log) => (
+              <div className="download-log-row" key={log.id}>
+                <strong>{log.operator} 于 {formatTime(log.downloadedAt)} {log.downloadType === 'STUDY_ZIP' ? '下载整组影像' : log.downloadType === 'SINGLE' ? '下载单张影像' : '下载影像'}</strong>
+                <span>用途：{log.reason || '未填写'}</span>
+              </div>
+            )) : <p className="muted">暂无下载记录。</p>}
+          </div>
         </section>
       ) : (
         <section className="panel">
@@ -228,4 +311,8 @@ export default function ImagesPage() {
       {dialog}
     </div>
   );
+}
+
+function formatTime(value) {
+  return value ? String(value).replace('T', ' ').slice(0, 16) : '—';
 }

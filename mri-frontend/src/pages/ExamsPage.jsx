@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { CalendarDays, ClipboardList, Pencil, Play, RefreshCw, Send, Trash2, CheckCircle2, Ban } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { statusLabel, statusTone, useApp } from '../lib/app-context.jsx';
+import { formatScheduleRange, riskView } from '../lib/workflow-utils.js';
 import { Button, DataTable, PageHeader, SectionHeader, SelectField, StatusTag, TextField, useConfirm } from '../components/ui.jsx';
 
 const STATUS_OPTIONS = [
@@ -65,6 +66,31 @@ export default function ExamsPage() {
     });
   }
 
+  async function start(e) {
+    const risk = await runAction(
+      `risk-${e.id}`,
+      '复核安全风险',
+      () => api.examRisk(e.id),
+      undefined,
+      { log: false, notify: false },
+    );
+    if (!risk) return;
+    let confirmed = false;
+    if (risk.level === 'HIGH') {
+      const details = (risk.items || []).map((item) =>
+        `${item.type || '未命名禁忌症'}：${item.description || '未填写说明'}（${item.severity === 'LOW' ? '低风险' : '高风险'}）`,
+      );
+      confirmed = await ask({
+        title: '高风险检查确认',
+        message: `开始检查前发现以下 MRI 安全风险：\n${details.join('\n')}\n\n请确认已完成风险评估。`,
+        confirmText: '确认已评估风险并开始检查',
+        tone: 'warning',
+      });
+      if (!confirmed) return;
+    }
+    await act(e, (id) => api.startExam(id, confirmed), '开始检查', 'start');
+  }
+
   async function cancel(e) {
     const ok = await ask({ message: `确定取消「${patientName(e.patientId)}」的检查申请吗？` });
     if (!ok) return;
@@ -104,13 +130,21 @@ export default function ExamsPage() {
             { key: 'examItem', label: '检查项目' },
             { key: 'clinicalDiagnosis', label: '临床诊断' },
             { key: 'priority', label: '优先级', render: (e) => <StatusTag tone={e.priority === '加急' ? 'danger' : 'neutral'}>{e.priority || '普通'}</StatusTag> },
+            {
+              key: 'risk',
+              label: '安全风险',
+              render: (e) => {
+                const view = riskView(e.riskLevel);
+                return <div className="risk-cell"><StatusTag tone={view.tone}>{view.label}</StatusTag>{e.riskSummary ? <small>{e.riskSummary}</small> : null}</div>;
+              },
+            },
             { key: 'status', label: '状态', render: (e) => <StatusTag status={e.status} /> },
             {
               key: 'actions',
               label: '操作',
               render: (e) => (
                 <div className="table-actions">
-                  <Button icon={Play} variant="ghost" disabled={e.status !== 'REQUESTED'} onClick={() => act(e, api.startExam, '开始检查', 'start')}>开始</Button>
+                  <Button icon={Play} variant="ghost" disabled={e.status !== 'REQUESTED'} onClick={() => start(e)}>开始</Button>
                   <Button icon={CheckCircle2} variant="ghost" disabled={e.status !== 'IN_PROGRESS'} onClick={() => act(e, api.completeExam, '完成检查', 'complete')}>完成</Button>
                   <Button icon={Ban} variant="ghost" disabled={e.status !== 'REQUESTED' && e.status !== 'IN_PROGRESS'} onClick={() => cancel(e)}>取消</Button>
                   <Button icon={Pencil} variant="ghost" disabled={e.status !== 'REQUESTED'} onClick={() => startEdit(e)}>编辑</Button>
@@ -145,7 +179,7 @@ function SchedulesSection() {
   const { exams, runAction, patientName, busyKey } = useApp();
   const [examId, setExamId] = useState(exams[0] ? String(exams[0].id) : '');
   const [schedules, setSchedules] = useState([]);
-  const [form, setForm] = useState({ scannerRoom: 'MRI-01', scheduledAt: '', technologist: '' });
+  const [form, setForm] = useState({ scannerRoom: 'MRI-01', scheduledAt: '', technologist: '', durationMinutes: '30' });
   const { ask, dialog } = useConfirm();
 
   useEffect(() => {
@@ -160,9 +194,13 @@ function SchedulesSection() {
 
   async function create(event) {
     event.preventDefault();
-    await runAction('createSchedule', '新增排程', () => api.createSchedule({ ...form, examOrderId: Number(examId) }), (created) => {
+    await runAction('createSchedule', '新增排程', () => api.createSchedule({
+      ...form,
+      examOrderId: Number(examId),
+      durationMinutes: Number(form.durationMinutes),
+    }), (created) => {
       setSchedules((current) => [created, ...current]);
-      setForm({ scannerRoom: 'MRI-01', scheduledAt: '', technologist: '' });
+      setForm({ scannerRoom: 'MRI-01', scheduledAt: '', technologist: '', durationMinutes: '30' });
     });
   }
 
@@ -187,13 +225,19 @@ function SchedulesSection() {
         <TextField label="检查室" name="scannerRoom" value={form.scannerRoom} onChange={update} />
         <TextField label="排程时间" name="scheduledAt" type="datetime-local" value={form.scheduledAt} onChange={update} />
         <TextField label="技师" name="technologist" value={form.technologist} onChange={update} />
+        <SelectField label="检查时长" name="durationMinutes" value={form.durationMinutes} onChange={update} options={[
+          { value: '30', label: '30 分钟' },
+          { value: '45', label: '45 分钟' },
+          { value: '60', label: '60 分钟' },
+        ]} />
         <div className="form-submit"><Button icon={CalendarDays} variant="secondary" busy={busyKey === 'createSchedule'} disabled={!examId}>新增排程</Button></div>
       </form>
+      <p className="muted">冲突检测覆盖全部未取消的检查申请；如提示其他检查申请占用，请切换上方检查申请查看或删除。</p>
       {schedules.length ? (
         <div className="schedule-strip">
           {schedules.map((s) => (
             <span key={s.id}>
-              {s.scannerRoom} · {String(s.scheduledAt).replace('T', ' ')} · {s.technologist || '—'}
+              {s.scannerRoom} · {formatScheduleRange(s.scheduledAt, s.durationMinutes)} · {s.technologist ? `技师${s.technologist}` : '未指定技师'}
               <button className="link-danger" onClick={() => remove(s)}>删除</button>
             </span>
           ))}

@@ -9,7 +9,7 @@ services:
       MYSQL_PASSWORD: mri123456
       TZ: Asia/Shanghai
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     volumes:
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
       - mri-mysql-data:/var/lib/mysql
@@ -23,7 +23,7 @@ services:
     image: redis:7.2
     container_name: mri-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - mri-redis-data:/data
@@ -38,8 +38,8 @@ services:
       JVM_XMX: 512m
       JVM_XMN: 128m
     ports:
-      - "8848:8848"
-      - "9848:9848"
+      - "127.0.0.1:8848:8848"
+      - "127.0.0.1:9848:9848"
     volumes:
       - mri-nacos-data:/home/nacos/data
 
@@ -51,8 +51,8 @@ services:
       MINIO_ROOT_USER: mri
       MINIO_ROOT_PASSWORD: mri123456
     ports:
-      - "9000:9000"
-      - "9101:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9101:9001"
     volumes:
       - mri-minio-data:/data
 

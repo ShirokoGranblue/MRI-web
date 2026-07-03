@@ -144,7 +144,7 @@ class ImageStudyServiceTest {
         });
 
         ImageStudyService service = new ImageStudyService(repository, cache, examClient, storage);
-        ImageFile saved = service.uploadFile(21L, file);
+        ImageFile saved = service.uploadFile(5L, 21L, file);
 
         assertThat(saved.id()).isEqualTo(7L);
         assertThat(saved.seriesId()).isEqualTo(21L);
@@ -153,6 +153,58 @@ class ImageStudyServiceTest {
         verify(storage).putObject(eq(saved.storagePath()), any(), eq(3L), eq("image/png"));
         verify(repository).createFile(any(ImageFile.class));
         verify(cache).evict(5L);
+    }
+
+    @Test
+    void uploadInfersImageMimeWhenMultipartUsesGenericBinaryType() {
+        ImageStudyRepository repository = mock(ImageStudyRepository.class);
+        StudyCache cache = mock(StudyCache.class);
+        ExamClient examClient = mock(ExamClient.class);
+        MinioImageStorage storage = mock(MinioImageStorage.class);
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "scan-001.png", "application/octet-stream", new byte[]{1, 2, 3});
+        when(repository.findSeries(21L)).thenReturn(Optional.of(new MriSeries(21L, 5L, "T1", "AXIAL")));
+        when(repository.createFile(any(ImageFile.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ImageStudyService service = new ImageStudyService(repository, cache, examClient, storage);
+        service.uploadFile(5L, 21L, file);
+
+        verify(storage).putObject(any(), any(), eq(3L), eq("image/png"));
+    }
+
+    @Test
+    void uploadRejectsSeriesFromDifferentStudyBeforeWritingObject() {
+        ImageStudyRepository repository = mock(ImageStudyRepository.class);
+        StudyCache cache = mock(StudyCache.class);
+        ExamClient examClient = mock(ExamClient.class);
+        MinioImageStorage storage = mock(MinioImageStorage.class);
+        MockMultipartFile file = new MockMultipartFile("file", "scan-001.png", "image/png", new byte[]{1, 2, 3});
+        when(repository.findSeries(21L)).thenReturn(Optional.of(new MriSeries(21L, 9L, "T1", "AXIAL")));
+
+        ImageStudyService service = new ImageStudyService(repository, cache, examClient, storage);
+
+        assertThatThrownBy(() -> service.uploadFile(5L, 21L, file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("不属于");
+        verify(storage, never()).putObject(any(), any(), any(Long.class), any());
+        verify(repository, never()).createFile(any(ImageFile.class));
+    }
+
+    @Test
+    void createFileRejectsSeriesFromDifferentStudy() {
+        ImageStudyRepository repository = mock(ImageStudyRepository.class);
+        StudyCache cache = mock(StudyCache.class);
+        ExamClient examClient = mock(ExamClient.class);
+        MinioImageStorage storage = mock(MinioImageStorage.class);
+        ImageFile file = new ImageFile(null, 21L, "scan-001.png", "series/21/scan-001.png", "checksum");
+        when(repository.findSeries(21L)).thenReturn(Optional.of(new MriSeries(21L, 9L, "T1", "AXIAL")));
+
+        ImageStudyService service = new ImageStudyService(repository, cache, examClient, storage);
+
+        assertThatThrownBy(() -> service.createFile(file, 5L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("不属于");
+        verify(repository, never()).createFile(file);
     }
 
     @Test

@@ -520,6 +520,65 @@ tr:last-child td {
   font-size: 12px;
 }
 
+.risk-cell {
+  display: grid;
+  gap: 5px;
+  max-width: 240px;
+}
+
+.risk-cell small {
+  color: #637486;
+  line-height: 1.45;
+}
+
+.download-controls {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.download-controls .field {
+  min-width: 180px;
+}
+
+.inline-notice {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid #f1c27d;
+  border-radius: 8px;
+  color: #7a4b00;
+  background: #fff8e8;
+  font-size: 13px;
+}
+
+.download-log-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.download-log-panel h3 {
+  margin: 0;
+  color: #203646;
+  font-size: 14px;
+}
+
+.download-log-row {
+  display: grid;
+  gap: 3px;
+  padding: 9px 11px;
+  border: 1px solid #dde6eb;
+  border-radius: 8px;
+  background: #f7fafb;
+  font-size: 12px;
+}
+
+.download-log-row span {
+  color: #637486;
+}
+
 .inline-controls {
   align-items: end;
 }
@@ -1116,6 +1175,7 @@ tr:last-child td {
   color: #445566;
   font-size: 14px;
   line-height: 1.5;
+  white-space: pre-line;
 }
 
 .dialog-actions {

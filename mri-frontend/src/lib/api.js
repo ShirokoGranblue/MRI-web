@@ -145,6 +145,47 @@ async function apiBlob(path) {
   return response.blob();
 }
 
+export function downloadFileName(contentDisposition, fallback = '影像文件') {
+  if (!contentDisposition) {
+    return fallback;
+  }
+  const utf8 = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  if (utf8?.[1]) {
+    try {
+      return decodeURIComponent(utf8[1].trim().replace(/^"|"$/g, ''));
+    } catch {
+      return fallback;
+    }
+  }
+  const plain = contentDisposition.match(/filename\s*=\s*("?)([^";]+)\1/i);
+  return plain?.[2]?.trim() || fallback;
+}
+
+export async function downloadAttachment(path, fallbackName = '影像文件') {
+  const response = await userFriendlyFetch(path, { headers: authHeaders() });
+  if (!response.ok) {
+    const payload = parsePayload(await response.text());
+    throw responseError(response, payload);
+  }
+  const blob = await response.blob();
+  const fileName = downloadFileName(response.headers.get('Content-Disposition'), fallbackName);
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  try {
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+  } finally {
+    setTimeout(() => {
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    }, 1000);
+  }
+  return fileName;
+}
+
 function toRecords(pageResult) {
   if (Array.isArray(pageResult)) {
     return pageResult;
@@ -181,7 +222,9 @@ export const api = {
   createExam: (body) => apiRequest('/api/exams', { method: 'POST', body: JSON.stringify(body) }),
   updateExam: (id, body) => apiRequest(`/api/exams/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   cancelExam: (id) => apiRequest(`/api/exams/${id}/cancel`, { method: 'POST' }),
-  startExam: (id) => apiRequest(`/api/exams/${id}/start`, { method: 'POST' }),
+  examRisk: (id) => apiRequest(`/api/exams/${id}/risk`),
+  startExam: (id, confirmHighRisk = false) =>
+    apiRequest(`/api/exams/${id}/start?confirmHighRisk=${confirmHighRisk}`, { method: 'POST' }),
   completeExam: (id) => apiRequest(`/api/exams/${id}/complete`, { method: 'POST' }),
   deleteExam: (id) => apiRequest(`/api/exams/${id}`, { method: 'DELETE' }),
   byPatient: (patientId) => apiRequest(`/api/exams/by-patient/${patientId}`).then(toRecords),
@@ -208,13 +251,18 @@ export const api = {
   fileContent: (id) => apiBlob(`/api/images/files/${id}/content`),
   viewerManifest: (studyId) => apiRequest(`/api/images/studies/${studyId}/viewer-manifest`),
   cacheDemo: (studyId) => apiRequest(`/api/images/studies/${studyId}/cache-demo`),
+  downloadFile: (fileId, reason) =>
+    downloadAttachment(`/api/images/files/${fileId}/download?reason=${encodeURIComponent(reason || '')}`, `影像-${fileId}`),
   downloadStudy: (studyId, reason) =>
-    apiRequest(`/api/images/studies/${studyId}/download?reason=${encodeURIComponent(reason || '')}`, { method: 'POST' }),
+    downloadAttachment(`/api/images/studies/${studyId}/download?reason=${encodeURIComponent(reason || '')}&transport=browser`, `Study-${studyId}-影像.zip`),
   downloadLogs: (studyId) => apiRequest(`/api/images/studies/${studyId}/download-logs`).then(toRecords),
   myStudies: () => apiRequest('/api/images/mine/studies').then(toRecords).then((records) =>
     records.map((item) => ({ ...item.study, fileCount: item.fileCount, reportPublished: item.reportPublished }))),
   myViewerManifest: (studyId) => apiRequest(`/api/images/mine/studies/${studyId}/viewer-manifest`),
   myFileContent: (id) => apiBlob(`/api/images/mine/files/${id}/content`),
+  myDownloadFile: (id) => downloadAttachment(`/api/images/mine/files/${id}/download`, `影像-${id}`),
+  myDownloadStudy: (studyId) =>
+    downloadAttachment(`/api/images/mine/studies/${studyId}/download?transport=browser`, `Study-${studyId}-影像.zip`),
 
   // 诊断报告
   reports: (page = 1, size = 10, status = '') =>

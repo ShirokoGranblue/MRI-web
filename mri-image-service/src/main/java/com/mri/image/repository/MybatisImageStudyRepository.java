@@ -165,7 +165,9 @@ public class MybatisImageStudyRepository implements ImageStudyRepository {
 
     @Override
     public List<DownloadLog> downloadLogs(Long studyId) {
-        return downloadLogMapper.selectList(new LambdaQueryWrapper<DownloadLogEntity>().eq(DownloadLogEntity::getStudyId, studyId))
+        return downloadLogMapper.selectList(new LambdaQueryWrapper<DownloadLogEntity>()
+                        .eq(DownloadLogEntity::getStudyId, studyId)
+                        .orderByDesc(DownloadLogEntity::getDownloadedAt))
                 .stream().map(MybatisImageStudyRepository::toModel).toList();
     }
 
@@ -211,13 +213,16 @@ public class MybatisImageStudyRepository implements ImageStudyRepository {
     }
 
     private static DownloadLog toModel(DownloadLogEntity entity) {
-        return new DownloadLog(entity.getId(), entity.getStudyId(), entity.getOperator(), entity.getReason(), entity.getDownloadedAt());
+        return new DownloadLog(entity.getId(), entity.getStudyId(), entity.getFileId(), entity.getDownloadType(),
+                entity.getOperator(), entity.getReason(), entity.getDownloadedAt());
     }
 
     private static DownloadLogEntity toEntity(DownloadLog log) {
         DownloadLogEntity entity = new DownloadLogEntity();
         entity.setId(log.id());
         entity.setStudyId(log.studyId());
+        entity.setFileId(log.fileId());
+        entity.setDownloadType(log.downloadType());
         entity.setOperator(log.operator());
         entity.setReason(log.reason());
         entity.setDownloadedAt(log.downloadedAt());

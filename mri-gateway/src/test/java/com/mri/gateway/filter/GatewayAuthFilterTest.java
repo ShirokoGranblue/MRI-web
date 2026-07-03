@@ -74,6 +74,10 @@ class GatewayAuthFilterTest {
                 .isEqualTo(AuthorizationStatus.AUTHORIZED);
         assertThat(validator.authorize("/api/images/mine/studies", HttpMethod.GET, "Bearer " + patientToken).block().status())
                 .isEqualTo(AuthorizationStatus.AUTHORIZED);
+        assertThat(validator.authorize("/api/images/mine/files/41/download", HttpMethod.GET, "Bearer " + patientToken).block().status())
+                .isEqualTo(AuthorizationStatus.AUTHORIZED);
+        assertThat(validator.authorize("/api/images/mine/studies/31/download", HttpMethod.GET, "Bearer " + patientToken).block().status())
+                .isEqualTo(AuthorizationStatus.AUTHORIZED);
         assertThat(validator.authorize("/api/reports/mine", HttpMethod.GET, "Bearer " + patientToken).block().status())
                 .isEqualTo(AuthorizationStatus.AUTHORIZED);
         assertThat(validator.authorize("/api/exams", HttpMethod.POST, "Bearer " + patientToken).block().status())
@@ -81,6 +85,12 @@ class GatewayAuthFilterTest {
         assertThat(validator.authorize("/api/patients", HttpMethod.GET, "Bearer " + patientToken).block().status())
                 .isEqualTo(AuthorizationStatus.FORBIDDEN);
         assertThat(validator.authorize("/api/exams/1/start", HttpMethod.POST, "Bearer " + patientToken).block().status())
+                .isEqualTo(AuthorizationStatus.FORBIDDEN);
+        assertThat(validator.authorize("/api/exams/1/risk", HttpMethod.GET, "Bearer " + patientToken).block().status())
+                .isEqualTo(AuthorizationStatus.FORBIDDEN);
+        assertThat(validator.authorize("/api/images/files/41/download", HttpMethod.GET, "Bearer " + patientToken).block().status())
+                .isEqualTo(AuthorizationStatus.FORBIDDEN);
+        assertThat(validator.authorize("/api/images/studies/31/download", HttpMethod.GET, "Bearer " + patientToken).block().status())
                 .isEqualTo(AuthorizationStatus.FORBIDDEN);
     }
 

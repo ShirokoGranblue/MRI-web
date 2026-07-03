@@ -17,7 +17,7 @@ public class AuthSecurityConfig {
 
     @Bean
     public JwtTokenProvider jwtTokenProvider(
-            @Value("${mri.security.jwt-secret:0123456789abcdef0123456789abcdef}") String secret,
+            @Value("${mri.security.jwt-secret}") String secret,
             @Value("${mri.security.token-ttl-minutes:120}") long ttlMinutes
     ) {
         return new JwtTokenProvider(secret, Duration.ofMinutes(ttlMinutes));

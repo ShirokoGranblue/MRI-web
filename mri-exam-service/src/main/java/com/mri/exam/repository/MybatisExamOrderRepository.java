@@ -10,8 +10,10 @@ import com.mri.exam.mapper.ExamOrderMapper;
 import com.mri.exam.mapper.ScheduleMapper;
 import com.mri.exam.model.ExamOrder;
 import com.mri.exam.model.MriSchedule;
+import com.mri.exam.model.RiskAssessment;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -75,6 +77,21 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
     }
 
     @Override
+    public ExamOrder updateRisk(Long id, RiskAssessment risk, String confirmedBy, LocalDateTime confirmedAt) {
+        ExamOrderEntity entity = examOrderMapper.selectById(id);
+        if (entity == null) {
+            throw new IllegalArgumentException("检查申请不存在");
+        }
+        entity.setRiskLevel(risk.level());
+        entity.setRiskSummary(risk.summary());
+        entity.setRiskEvaluatedAt(risk.evaluatedAt());
+        entity.setRiskConfirmedBy(confirmedBy);
+        entity.setRiskConfirmedAt(confirmedAt);
+        ensureAffected(examOrderMapper.updateById(entity), "检查申请不存在");
+        return toModel(entity);
+    }
+
+    @Override
     public ExamOrder cancel(Long id) {
         return updateStatus(id, "CANCELLED");
     }
@@ -121,17 +138,32 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
     }
 
     @Override
+    public List<MriSchedule> listSchedulesForConflict() {
+        return scheduleMapper.selectList(null).stream()
+                .filter(schedule -> {
+                    ExamOrderEntity order = examOrderMapper.selectById(schedule.getExamOrderId());
+                    return order != null && !"CANCELLED".equals(order.getStatus());
+                })
+                .map(MybatisExamOrderRepository::toModel)
+                .toList();
+    }
+
+    @Override
     public void deleteSchedule(Long id) {
         ensureAffected(scheduleMapper.deleteById(id), "检查排程不存在");
     }
 
     private static ExamOrder toModel(ExamOrderEntity entity) {
         return new ExamOrder(entity.getId(), entity.getPatientId(), entity.getExamItem(),
-                entity.getClinicalDiagnosis(), entity.getPriority(), entity.getStatus(), entity.getCreatedAt());
+                entity.getClinicalDiagnosis(), entity.getPriority(), entity.getStatus(), entity.getCreatedAt(),
+                entity.getRiskLevel(), entity.getRiskSummary(), entity.getRiskEvaluatedAt(),
+                entity.getRiskConfirmedBy(), entity.getRiskConfirmedAt());
     }
 
     private static MriSchedule toModel(ScheduleEntity entity) {
-        return new MriSchedule(entity.getId(), entity.getExamOrderId(), entity.getScannerRoom(), entity.getScheduledAt(), entity.getTechnologist());
+        return new MriSchedule(entity.getId(), entity.getExamOrderId(), entity.getScannerRoom(),
+                entity.getScheduledAt(), entity.getTechnologist(),
+                entity.getDurationMinutes() == null ? 30 : entity.getDurationMinutes());
     }
 
     private static ScheduleEntity toEntity(MriSchedule schedule) {
@@ -141,6 +173,7 @@ public class MybatisExamOrderRepository implements ExamOrderRepository {
         entity.setScannerRoom(schedule.scannerRoom());
         entity.setScheduledAt(schedule.scheduledAt());
         entity.setTechnologist(schedule.technologist());
+        entity.setDurationMinutes(schedule.durationMinutes() == null ? 30 : schedule.durationMinutes());
         return entity;
     }
 

@@ -17,6 +17,14 @@ public class PatientExamQueryService {
         this.repository = repository;
     }
 
+    public Long requirePatientId(String username) {
+        Long patientId = accessMapper.findPatientId(username);
+        if (patientId == null) {
+            throw new IllegalArgumentException("请先完成患者资料");
+        }
+        return patientId;
+    }
+
     public List<PatientExamView> findMine(String username) {
         Long patientId = accessMapper.findPatientId(username);
         if (patientId == null) {

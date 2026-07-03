@@ -53,14 +53,14 @@ public class ReportController {
     @Operation(summary = "报告删除")
     @DeleteMapping("/{id}")
     public ApiResult<Void> delete(@PathVariable Long id) {
-        repository.delete(id);
+        service.delete(id);
         return ApiResult.ok();
     }
 
     @Operation(summary = "报告修改")
     @PutMapping("/{id}")
     public ApiResult<Report> update(@PathVariable Long id, @RequestBody CreateReportRequest request) {
-        return ApiResult.ok(repository.update(id, request));
+        return ApiResult.ok(service.update(id, request));
     }
 
     @Operation(summary = "报告详情")
@@ -79,32 +79,38 @@ public class ReportController {
 
     @Operation(summary = "提交审核")
     @PostMapping("/{id}/submit")
-    public ApiResult<Report> submit(@PathVariable Long id) {
-        return ApiResult.ok(service.submit(id));
+    public ApiResult<Report> submit(@PathVariable Long id,
+                                    @RequestHeader("X-Authenticated-User") String username) {
+        return ApiResult.ok(service.submit(id, username));
     }
 
     @Operation(summary = "审核通过")
     @PostMapping("/{id}/approve")
-    public ApiResult<Report> approve(@PathVariable Long id) {
-        return ApiResult.ok(service.approve(id));
+    public ApiResult<Report> approve(@PathVariable Long id,
+                                     @RequestHeader("X-Authenticated-User") String username) {
+        return ApiResult.ok(service.approve(id, username));
     }
 
     @Operation(summary = "审核驳回")
     @PostMapping("/{id}/reject")
-    public ApiResult<Report> reject(@PathVariable Long id, @RequestParam(defaultValue = "退回修改") String reason) {
-        return ApiResult.ok(service.reject(id, reason));
+    public ApiResult<Report> reject(@PathVariable Long id,
+                                    @RequestHeader("X-Authenticated-User") String username,
+                                    @RequestParam(defaultValue = "退回修改") String reason) {
+        return ApiResult.ok(service.reject(id, username, reason));
     }
 
     @Operation(summary = "回到草稿修改")
     @PostMapping("/{id}/reopen")
-    public ApiResult<Report> reopen(@PathVariable Long id) {
-        return ApiResult.ok(service.reopen(id));
+    public ApiResult<Report> reopen(@PathVariable Long id,
+                                    @RequestHeader("X-Authenticated-User") String username) {
+        return ApiResult.ok(service.reopen(id, username));
     }
 
     @Operation(summary = "发布报告")
     @PostMapping("/{id}/publish")
-    public ApiResult<Report> publish(@PathVariable Long id) {
-        return ApiResult.ok(service.publish(id));
+    public ApiResult<Report> publish(@PathVariable Long id,
+                                     @RequestHeader("X-Authenticated-User") String username) {
+        return ApiResult.ok(service.publish(id, username));
     }
 
     @Operation(summary = "按检查单查询报告")
@@ -118,4 +124,5 @@ public class ReportController {
     public ApiResult<List<ReportAuditLog>> auditLogs(@PathVariable Long id) {
         return ApiResult.ok(repository.auditLogs(id));
     }
+
 }

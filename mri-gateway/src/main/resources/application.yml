@@ -1,4 +1,5 @@
 server:
+  address: ${MRI_GATEWAY_ADDRESS:127.0.0.1}
   port: 8080
 
 spring:
@@ -58,7 +59,7 @@ spring:
 
 mri:
   security:
-    jwt-secret: 0123456789abcdef0123456789abcdef
+    jwt-secret: ${MRI_JWT_SECRET:}
     token-ttl-minutes: 120
 
 springdoc:

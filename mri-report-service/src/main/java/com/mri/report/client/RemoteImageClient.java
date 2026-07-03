@@ -20,12 +20,15 @@ public class RemoteImageClient implements ImageClient {
     }
 
     @Override
-    public boolean studyExists(Long studyId) {
+    public Long studyExamOrderId(Long studyId) {
         try {
-            api.study(studyId);
-            return true;
+            Object value = api.study(studyId).data().get("examOrderId");
+            if (value instanceof Number number) {
+                return number.longValue();
+            }
+            return value == null ? null : Long.valueOf(String.valueOf(value));
         } catch (RuntimeException ex) {
-            return false;
+            return null;
         }
     }
 }

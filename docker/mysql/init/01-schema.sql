@@ -68,6 +68,11 @@ CREATE TABLE IF NOT EXISTS mri_exam_order (
   clinical_diagnosis VARCHAR(256),
   priority VARCHAR(32),
   status VARCHAR(32) NOT NULL,
+  risk_level VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
+  risk_summary VARCHAR(1024),
+  risk_evaluated_at DATETIME,
+  risk_confirmed_by VARCHAR(64),
+  risk_confirmed_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted TINYINT DEFAULT 0,
@@ -79,6 +84,7 @@ CREATE TABLE IF NOT EXISTS mri_schedule (
   exam_order_id BIGINT NOT NULL,
   scanner_room VARCHAR(64) NOT NULL,
   scheduled_at DATETIME NOT NULL,
+  duration_minutes INT NOT NULL DEFAULT 30,
   technologist VARCHAR(64),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -124,6 +130,8 @@ CREATE TABLE IF NOT EXISTS mri_image_file (
 CREATE TABLE IF NOT EXISTS mri_download_log (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   study_id BIGINT NOT NULL,
+  file_id BIGINT,
+  download_type VARCHAR(32) NOT NULL DEFAULT 'LEGACY',
   operator VARCHAR(64) NOT NULL,
   reason VARCHAR(256),
   downloaded_at DATETIME NOT NULL,
@@ -170,7 +178,7 @@ INSERT INTO sys_role (id, role_code, role_name) VALUES
 ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 
 INSERT INTO sys_user (id, username, password_hash, display_name, enabled) VALUES
-  (1, 'admin', 'bXJpLWRlbW8tc2FsdC0wMQ==:RXNbRsnC6O0uocAF8JkAe7ozzmURjU7gnQYBDpcs640=', CONVERT(0xE7B3BBE7BB9FE7AEA1E79086E59198 USING utf8mb4), 'Y')
+  (1, 'admin', 'pbkdf2-sha256$210000$bXJpLWRlbW8tc2FsdC0wMg==$64Q6fswXzMTjQ3xFyXA0dYgm7DCBBkp0Y+ZUKm3sIqg=', CONVERT(0xE7B3BBE7BB9FE7AEA1E79086E59198 USING utf8mb4), 'Y')
 ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), display_name = VALUES(display_name);
 
 INSERT INTO sys_user_role (id, user_id, role_code) VALUES

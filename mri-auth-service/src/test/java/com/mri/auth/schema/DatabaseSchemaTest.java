@@ -70,6 +70,41 @@ class DatabaseSchemaTest {
                 .contains("CONVERT(0xE7B3BBE7BB9FE7AEA1E79086E59198 USING utf8mb4)");
     }
 
+    @Test
+    void schemaSupportsRiskScheduleDurationAndDownloadAudit() throws IOException {
+        String schema = Files.readString(schemaPath());
+
+        assertThat(schema)
+                .contains("risk_level VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN'")
+                .contains("risk_summary VARCHAR(1024)")
+                .contains("risk_evaluated_at DATETIME")
+                .contains("risk_confirmed_by VARCHAR(64)")
+                .contains("risk_confirmed_at DATETIME")
+                .contains("duration_minutes INT NOT NULL DEFAULT 30")
+                .contains("file_id BIGINT")
+                .contains("download_type VARCHAR(32) NOT NULL DEFAULT 'LEGACY'");
+    }
+
+    @Test
+    void enhancementMigrationChecksEveryColumnBeforeAltering() throws IOException {
+        Path migration = schemaPath().resolveSibling("03-mri-enhancement-migration.sql");
+        String sql = Files.readString(migration);
+
+        assertThat(sql).contains("information_schema.COLUMNS");
+        for (String column : List.of(
+                "risk_level",
+                "risk_summary",
+                "risk_evaluated_at",
+                "risk_confirmed_by",
+                "risk_confirmed_at",
+                "duration_minutes",
+                "file_id",
+                "download_type"
+        )) {
+            assertThat(sql).contains("COLUMN_NAME = '" + column + "'");
+        }
+    }
+
     private static Path schemaPath() {
         Path rootRelative = Path.of("docker", "mysql", "init", "01-schema.sql");
         if (Files.exists(rootRelative)) {

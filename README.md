@@ -371,7 +371,5 @@ powershell -ExecutionPolicy Bypass -File scripts/db/clear-runtime-data.ps1
 ## 扩展文档
 
 - [产品操作手册](docs/product-manual.md)
-- [测试执行结果](docs/test-result.md)
 - [接口数量说明](docs/api-endpoint-count.md)
 - [开发难点与解决过程](docs/development-challenges.md)
-- [视频增强功能补充录制说明](docs/video-enhancement-guide.md)
